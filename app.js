@@ -1,0 +1,1 @@
+document.getElementById('result').innerText = 'หน้าเว็บทำงานแล้ว';
