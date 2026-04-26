@@ -9,6 +9,9 @@ const supabaseClient = createClient(
 let allRows = [];
 let activeFilter = 'all';
 let currentFormRow = null;
+let allIssues = [];
+let activeIssueFilter = 'pending';
+let currentIssueRow = null;
 
 const CHECK_FIELDS = [
   { key: 'pressure_gauge', label: '1) มาตรวัดความดัน' },
@@ -51,6 +54,25 @@ const formNoteEl = document.getElementById('formNote');
 const btnBack = document.getElementById('btnBack');
 const btnSaveCheck = document.getElementById('btnSaveCheck');
 const toastEl = document.getElementById('toast');
+const issuesPage = document.getElementById('issuesPage');
+const issueFormPage = document.getElementById('issueFormPage');
+
+const navIssues = document.getElementById('navIssues');
+
+const issueStatusEl = document.getElementById('issueStatus');
+const issueErrorEl = document.getElementById('issueError');
+const issueListEl = document.getElementById('issueList');
+const issueSearchInput = document.getElementById('issueSearchInput');
+const btnReloadIssues = document.getElementById('btnReloadIssues');
+
+const issueFormPointCodeEl = document.getElementById('issueFormPointCode');
+const issueFormLocationEl = document.getElementById('issueFormLocation');
+const issueFormBuildingEl = document.getElementById('issueFormBuilding');
+const issueFormSummaryEl = document.getElementById('issueFormSummary');
+const issueFixStatusInput = document.getElementById('issueFixStatusInput');
+const issueFixNoteInput = document.getElementById('issueFixNoteInput');
+const btnBackIssue = document.getElementById('btnBackIssue');
+const btnSaveIssue = document.getElementById('btnSaveIssue');
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -73,12 +95,15 @@ function showToast(message) {
 function setActiveNav(page) {
   navDashboard.classList.toggle('active', page === 'dashboard');
   navInspection.classList.toggle('active', page === 'inspection');
+  navIssues.classList.toggle('active', page === 'issues');
 }
 
 function showDashboardPage() {
   dashboardPage.classList.remove('hidden');
   inspectionPage.classList.add('hidden');
+  issuesPage.classList.add('hidden');
   formPage.classList.add('hidden');
+  issueFormPage.classList.add('hidden');
   bottomNav.classList.remove('hidden');
   setActiveNav('dashboard');
 }
@@ -86,9 +111,30 @@ function showDashboardPage() {
 function showInspectionPage() {
   dashboardPage.classList.add('hidden');
   inspectionPage.classList.remove('hidden');
+  issuesPage.classList.add('hidden');
   formPage.classList.add('hidden');
+  issueFormPage.classList.add('hidden');
   bottomNav.classList.remove('hidden');
   setActiveNav('inspection');
+}
+
+function showIssuesPage() {
+  dashboardPage.classList.add('hidden');
+  inspectionPage.classList.add('hidden');
+  formPage.classList.add('hidden');
+  issueFormPage.classList.add('hidden');
+  issuesPage.classList.remove('hidden');
+  bottomNav.classList.remove('hidden');
+  setActiveNav('issues');
+}
+
+function showIssueFormPage() {
+  dashboardPage.classList.add('hidden');
+  inspectionPage.classList.add('hidden');
+  formPage.classList.add('hidden');
+  issuesPage.classList.add('hidden');
+  issueFormPage.classList.remove('hidden');
+  bottomNav.classList.add('hidden');
 }
 
 function showFormPage() {
@@ -173,6 +219,137 @@ function renderList(rows) {
         </button>
       </div>
     `;
+function renderIssueList(rows) {
+  issueListEl.innerHTML = '';
+
+  if (!rows.length) {
+    issueListEl.innerHTML = `<div class="empty">ไม่พบรายการปัญหา</div>`;
+    return;
+  }
+
+  rows.forEach(row => {
+    const point = row.points || {};
+    const badgeClass = row.fix_status === 'fixed' ? 'fixed' : 'pending';
+    const badgeText = row.fix_status === 'fixed' ? 'ซ่อมแล้ว' : 'รอดำเนินการ';
+
+    const card = document.createElement('div');
+    card.className = 'inspection-card red';
+    card.innerHTML = `
+      <div class="inspection-left">
+        <div class="card-head">
+          <div class="inspection-code">${escapeHtml(point.point_code || '-')}</div>
+          <span class="issue-badge ${badgeClass}">${badgeText}</span>
+        </div>
+        <div class="inspection-location">${escapeHtml(point.location || '-')}</div>
+        <div class="inspection-meta">${escapeHtml(point.building || '-')} · ${escapeHtml(point.hospital_zone || '-')}</div>
+        <div class="inspection-sub">ปัญหา: ${escapeHtml(row.problem_summary || '-')}</div>
+        <div class="inspection-sub">บันทึกล่าสุด: ${escapeHtml(formatDateTime(row.updated_at || row.created_at || ''))}</div>
+      </div>
+
+      <div class="inspection-right">
+        <button class="inspection-action-btn edit" type="button">จัดการ<br>ปัญหา</button>
+      </div>
+    `;
+
+    card.querySelector('button').addEventListener('click', () => openIssueForm(row));
+    issueListEl.appendChild(card);
+  });
+}
+
+function applyIssueFilters() {
+  const q = issueSearchInput.value.trim().toLowerCase();
+
+  const filtered = allIssues.filter(row => {
+    const point = row.points || {};
+    const matchKeyword =
+      String(point.point_code || '').toLowerCase().includes(q) ||
+      String(point.location || '').toLowerCase().includes(q) ||
+      String(point.building || '').toLowerCase().includes(q) ||
+      String(row.problem_summary || '').toLowerCase().includes(q);
+
+    if (!matchKeyword) return false;
+    if (activeIssueFilter === 'pending') return row.fix_status === 'pending';
+    if (activeIssueFilter === 'fixed') return row.fix_status === 'fixed';
+    return true;
+  });
+
+  renderIssueList(filtered);
+}
+
+function openIssueForm(row) {
+  currentIssueRow = row;
+  const point = row.points || {};
+
+  issueFormPointCodeEl.textContent = point.point_code || '-';
+  issueFormLocationEl.textContent = point.location || '-';
+  issueFormBuildingEl.textContent = `${point.building || '-'} · ${point.hospital_zone || '-'}`;
+  issueFormSummaryEl.textContent = row.problem_summary || '-';
+  issueFixStatusInput.value = row.fix_status || 'pending';
+  issueFixNoteInput.value = row.fix_note || '';
+
+  showIssueFormPage();
+}
+
+async function saveIssueForm() {
+  if (!currentIssueRow) return;
+
+  btnSaveIssue.disabled = true;
+  btnSaveIssue.textContent = 'กำลังบันทึก...';
+
+  const payload = {
+    fix_status: issueFixStatusInput.value,
+    fix_note: issueFixNoteInput.value.trim(),
+    fixed_at: issueFixStatusInput.value === 'fixed' ? new Date().toISOString() : null,
+    fixed_by: issueFixStatusInput.value === 'fixed' ? 'demo' : null,
+    fixed_by_name: issueFixStatusInput.value === 'fixed' ? 'ผู้ทดสอบระบบ' : null
+  };
+
+  const { error } = await supabaseClient
+    .from('issues')
+    .update(payload)
+    .eq('id', currentIssueRow.id);
+
+  btnSaveIssue.disabled = false;
+  btnSaveIssue.textContent = 'บันทึกข้อมูล';
+
+  if (error) {
+    alert('บันทึกการแก้ไขปัญหาไม่สำเร็จ: ' + error.message);
+    return;
+  }
+
+  showToast('บันทึกการแก้ไขปัญหาสำเร็จ');
+  await loadIssuesData();
+  showIssuesPage();
+}
+
+async function loadIssuesData() {
+  issueStatusEl.textContent = 'กำลังโหลดข้อมูล...';
+  issueErrorEl.textContent = '';
+  issueListEl.innerHTML = '';
+
+  const { data, error } = await supabaseClient
+    .from('issues')
+    .select(`
+      *,
+      points:point_id (
+        point_code,
+        location,
+        building,
+        hospital_zone
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    issueStatusEl.textContent = 'โหลดข้อมูลไม่สำเร็จ';
+    issueErrorEl.textContent = error.message;
+    return;
+  }
+
+  allIssues = data || [];
+  issueStatusEl.textContent = `โหลดข้อมูลสำเร็จ ${allIssues.length} รายการ`;
+  applyIssueFilters();
+}
 
     card.querySelector('button').addEventListener('click', () => openCheckForm(row));
     listEl.appendChild(card);
@@ -269,6 +446,75 @@ function getFormValues() {
   return { values, incomplete };
 }
 
+function buildProblemSummary(values) {
+  const failed = CHECK_FIELDS
+    .filter(field => values[field.key] === 'ไม่ผ่าน')
+    .map(field => field.label.replace(/^\d+\)\s*/, ''));
+
+  return failed.join(', ');
+}
+
+async function syncIssueForCheck({ checkId, pointId, overallResult, values }) {
+  const { data: existingIssue, error: issueFindError } = await supabaseClient
+    .from('issues')
+    .select('*')
+    .eq('check_id', checkId)
+    .maybeSingle();
+
+  if (issueFindError) {
+    throw issueFindError;
+  }
+
+  if (overallResult === 'พบปัญหา') {
+    const problemSummary = buildProblemSummary(values);
+
+    const issuePayload = {
+      point_id: pointId,
+      check_id: checkId,
+      problem_summary: problemSummary || 'พบปัญหาจากการตรวจสอบ',
+      reported_by: 'demo',
+      reported_by_name: 'ผู้ทดสอบระบบ',
+      fix_status: 'pending',
+      fix_note: existingIssue?.fix_note || null,
+      fixed_at: null,
+      fixed_by: null,
+      fixed_by_name: null
+    };
+
+    if (existingIssue?.id) {
+      const { error } = await supabaseClient
+        .from('issues')
+        .update(issuePayload)
+        .eq('id', existingIssue.id);
+
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseClient
+        .from('issues')
+        .insert(issuePayload);
+
+      if (error) throw error;
+    }
+
+    return;
+  }
+
+  if (existingIssue?.id) {
+    const { error } = await supabaseClient
+      .from('issues')
+      .update({
+        fix_status: 'fixed',
+        fix_note: existingIssue.fix_note || 'ระบบปิดงานอัตโนมัติหลังตรวจผ่าน',
+        fixed_at: new Date().toISOString(),
+        fixed_by: 'demo',
+        fixed_by_name: 'ผู้ทดสอบระบบ'
+      })
+      .eq('id', existingIssue.id);
+
+    if (error) throw error;
+  }
+}
+
 async function saveCheck() {
   if (!currentFormRow) return;
 
@@ -320,22 +566,52 @@ async function saveCheck() {
   }
 
   let saveError = null;
+  let savedCheckId = null;
 
   if (existing?.id) {
-    const { error } = await supabaseClient.from('checks').update(payload).eq('id', existing.id);
+    const { data, error } = await supabaseClient
+      .from('checks')
+      .update(payload)
+      .eq('id', existing.id)
+      .select('id')
+      .single();
+
     saveError = error;
+    savedCheckId = data?.id || existing.id;
   } else {
-    const { error } = await supabaseClient.from('checks').insert(payload);
+    const { data, error } = await supabaseClient
+      .from('checks')
+      .insert(payload)
+      .select('id')
+      .single();
+
     saveError = error;
+    savedCheckId = data?.id || null;
+  }
+
+  if (saveError) {
+    btnSaveCheck.disabled = false;
+    btnSaveCheck.textContent = 'บันทึกข้อมูล';
+    alert('บันทึกผลการตรวจไม่สำเร็จ: ' + saveError.message);
+    return;
+  }
+
+  try {
+    await syncIssueForCheck({
+      checkId: savedCheckId,
+      pointId: currentFormRow.point_id,
+      overallResult,
+      values
+    });
+  } catch (err) {
+    btnSaveCheck.disabled = false;
+    btnSaveCheck.textContent = 'บันทึกข้อมูล';
+    alert('บันทึกผลการตรวจสำเร็จ แต่จัดการรายการปัญหาไม่สำเร็จ: ' + (err.message || err));
+    return;
   }
 
   btnSaveCheck.disabled = false;
   btnSaveCheck.textContent = 'บันทึกข้อมูล';
-
-  if (saveError) {
-    alert('บันทึกผลการตรวจไม่สำเร็จ: ' + saveError.message);
-    return;
-  }
 
   showToast('บันทึกการตรวจสำเร็จ');
   await loadInspectionData();
@@ -400,12 +676,31 @@ btnSaveCheck.addEventListener('click', saveCheck);
 navDashboard.addEventListener('click', showDashboardPage);
 navInspection.addEventListener('click', showInspectionPage);
 
+navIssues.addEventListener('click', async () => {
+  showIssuesPage();
+  await loadIssuesData();
+});
+
+issueSearchInput.addEventListener('input', applyIssueFilters);
+btnReloadIssues.addEventListener('click', loadIssuesData);
+btnBackIssue.addEventListener('click', showIssuesPage);
+btnSaveIssue.addEventListener('click', saveIssueForm);
+
 document.querySelectorAll('#filterRow .filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#filterRow .filter-chip').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     activeFilter = btn.dataset.filter;
     applyFilters();
+  });
+});
+
+document.querySelectorAll('#issueFilterRow .filter-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#issueFilterRow .filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeIssueFilter = btn.dataset.filter;
+    applyIssueFilters();
   });
 });
 

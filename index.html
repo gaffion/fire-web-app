@@ -352,6 +352,25 @@
       font-weight: 700;
       box-shadow: 0 10px 25px rgba(0,0,0,0.15);
       z-index: 9999;
+
+    .issue-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      background: rgba(255,255,255,0.75);
+    }
+
+    .issue-badge.pending {
+      color: #b45309;
+    }
+
+    .issue-badge.fixed {
+      color: #166534;
+    }
     }
   </style>
 </head>
@@ -419,6 +438,26 @@
       <div id="list" class="list"></div>
     </section>
 
+    <section id="issuesPage" class="hidden">
+      <h1 class="title">รายการปัญหา</h1>
+      <p class="subtitle">ติดตามปัญหาจากการตรวจถังดับเพลิง</p>
+
+      <div class="toolbar">
+        <input id="issueSearchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร, ปัญหา">
+        <button id="btnReloadIssues" class="btn">โหลดใหม่</button>
+      </div>
+
+      <div class="filter-row" id="issueFilterRow">
+        <button class="filter-chip active" data-filter="pending">รอดำเนินการ</button>
+        <button class="filter-chip" data-filter="fixed">ซ่อมแล้ว</button>
+        <button class="filter-chip" data-filter="all">ทั้งหมด</button>
+      </div>
+
+      <div id="issueStatus" class="status">กำลังเตรียมระบบ...</div>
+      <div id="issueError" class="error"></div>
+      <div id="issueList" class="list"></div>
+    </section>
+
     <section id="formPage" class="hidden">
       <div class="form-card">
         <h2 class="form-title">บันทึกผลการตรวจ</h2>
@@ -442,11 +481,39 @@
         </div>
       </div>
     </section>
+
+    <section id="issueFormPage" class="hidden">
+      <div class="form-card">
+        <h2 class="form-title">จัดการปัญหา</h2>
+
+        <div class="info-box">
+          <div class="info-row"><strong>จุดติดตั้ง:</strong> <span id="issueFormPointCode">-</span></div>
+          <div class="info-row"><strong>พิกัด:</strong> <span id="issueFormLocation">-</span></div>
+          <div class="info-row"><strong>อาคาร:</strong> <span id="issueFormBuilding">-</span></div>
+          <div class="info-row"><strong>ปัญหาที่พบ:</strong> <span id="issueFormSummary">-</span></div>
+        </div>
+
+        <div class="label">สถานะการแก้ไข</div>
+        <select id="issueFixStatusInput" class="search" style="margin-bottom:14px;">
+          <option value="pending">รอดำเนินการ</option>
+          <option value="fixed">ซ่อมแล้ว</option>
+        </select>
+
+        <div class="label">บันทึกการแก้ไข</div>
+        <textarea id="issueFixNoteInput" class="textarea" placeholder="ระบุรายละเอียดการแก้ไข"></textarea>
+
+        <div class="form-actions">
+          <button id="btnBackIssue" class="btn secondary" type="button">กลับ</button>
+          <button id="btnSaveIssue" class="btn" type="button">บันทึกข้อมูล</button>
+        </div>
+      </div>
+    </section>
   </div>
 
-  <div class="bottom-nav" id="bottomNav">
+  <div class="bottom-nav" id="bottomNav" style="grid-template-columns: 1fr 1fr 1fr;">
     <button id="navDashboard" class="nav-btn active" type="button">หน้าหลัก</button>
     <button id="navInspection" class="nav-btn" type="button">ตรวจสอบ</button>
+    <button id="navIssues" class="nav-btn" type="button">ปัญหา</button>
   </div>
 
   <div id="toast" class="toast hidden"></div>
