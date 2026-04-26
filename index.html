@@ -20,6 +20,10 @@
       padding: 18px 14px 28px;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
     .title {
       font-size: 24px;
       font-weight: 800;
@@ -105,6 +109,11 @@
       color: white;
       font-weight: 700;
       cursor: pointer;
+    }
+
+    .btn.secondary {
+      background: #e2e8f0;
+      color: #1f2937;
     }
 
     .filter-row {
@@ -233,24 +242,15 @@
 
     .inspection-action-btn.red {
       background: #ef4444;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.18);
     }
 
     .inspection-action-btn.green {
       background: #22c55e;
-      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.18);
     }
 
     .inspection-action-btn.edit {
       background: #e2e8f0;
       color: #1f2937;
-      box-shadow: none;
-    }
-
-    .inspection-action-btn:active,
-    .btn:active,
-    .filter-chip:active {
-      transform: scale(0.98);
     }
 
     .empty {
@@ -261,65 +261,215 @@
       text-align: center;
       color: #64748b;
     }
+
+    .form-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .form-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .info-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+
+    .info-row {
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .info-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .label {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .check-item {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .check-name {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .segment {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .segment button {
+      height: 42px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .segment button.active.pass {
+      background: #22c55e;
+      color: white;
+      border-color: #22c55e;
+    }
+
+    .segment button.active.fail {
+      background: #ef4444;
+      color: white;
+      border-color: #ef4444;
+    }
+
+    .textarea {
+      width: 100%;
+      min-height: 90px;
+      border-radius: 14px;
+      border: 1px solid #cbd5e1;
+      padding: 12px;
+      font-size: 14px;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+
+    .form-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 24px;
+      background: #16a34a;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      z-index: 9999;
+    }
   </style>
 </head>
 <body>
   <div class="app">
-    <h1 class="title">Fire Web App</h1>
-    <p class="subtitle">รายการตรวจสอบถังดับเพลิง</p>
+    <section id="listPage">
+      <h1 class="title">Fire Web App</h1>
+      <p class="subtitle">รายการตรวจสอบถังดับเพลิง</p>
 
-    <div class="summary-grid">
-      <div class="summary-card">
-        <div class="summary-left">
-          <div class="summary-icon" style="background:#e2e8f0;">📍</div>
-          <div class="summary-label">จุดติดตั้งทั้งหมด</div>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-left">
+            <div class="summary-icon" style="background:#e2e8f0;">📍</div>
+            <div class="summary-label">จุดติดตั้งทั้งหมด</div>
+          </div>
+          <div id="totalCount" class="summary-value">0</div>
         </div>
-        <div id="totalCount" class="summary-value">0</div>
+
+        <div class="summary-card">
+          <div class="summary-left">
+            <div class="summary-icon" style="background:#dbeafe;">✅</div>
+            <div class="summary-label" style="color:#2563eb;">ตรวจแล้ว</div>
+          </div>
+          <div id="checkedCount" class="summary-value" style="color:#2563eb;">0</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-left">
+            <div class="summary-icon" style="background:#fee2e2;">⏳</div>
+            <div class="summary-label" style="color:#dc2626;">ยังไม่ตรวจ</div>
+          </div>
+          <div id="uncheckedCount" class="summary-value" style="color:#dc2626;">0</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-left">
+            <div class="summary-icon" style="background:#fef3c7;">⚠️</div>
+            <div class="summary-label" style="color:#b45309;">พบปัญหา</div>
+          </div>
+          <div id="issueCount" class="summary-value" style="color:#b45309;">0</div>
+        </div>
       </div>
 
-      <div class="summary-card">
-        <div class="summary-left">
-          <div class="summary-icon" style="background:#dbeafe;">✅</div>
-          <div class="summary-label" style="color:#2563eb;">ตรวจแล้ว</div>
-        </div>
-        <div id="checkedCount" class="summary-value" style="color:#2563eb;">0</div>
+      <div class="toolbar">
+        <input id="searchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร">
+        <button id="btnReload" class="btn">โหลดใหม่</button>
       </div>
 
-      <div class="summary-card">
-        <div class="summary-left">
-          <div class="summary-icon" style="background:#fee2e2;">⏳</div>
-          <div class="summary-label" style="color:#dc2626;">ยังไม่ตรวจ</div>
-        </div>
-        <div id="uncheckedCount" class="summary-value" style="color:#dc2626;">0</div>
+      <div class="filter-row" id="filterRow">
+        <button class="filter-chip active" data-filter="all">ทั้งหมด</button>
+        <button class="filter-chip" data-filter="unchecked">ยังไม่ตรวจ</button>
+        <button class="filter-chip" data-filter="checked">ตรวจแล้ว</button>
+        <button class="filter-chip" data-filter="issue">พบปัญหา</button>
+        <button class="filter-chip" data-filter="red">ถังสีแดง</button>
+        <button class="filter-chip" data-filter="green">ถังสีเขียว</button>
       </div>
 
-      <div class="summary-card">
-        <div class="summary-left">
-          <div class="summary-icon" style="background:#fef3c7;">⚠️</div>
-          <div class="summary-label" style="color:#b45309;">พบปัญหา</div>
+      <div id="status" class="status">กำลังเตรียมระบบ...</div>
+      <div id="error" class="error"></div>
+      <div id="list" class="list"></div>
+    </section>
+
+    <section id="formPage" class="hidden">
+      <div class="form-card">
+        <div class="form-header">
+          <h2 class="form-title">บันทึกผลการตรวจ</h2>
         </div>
-        <div id="issueCount" class="summary-value" style="color:#b45309;">0</div>
+
+        <div class="info-box">
+          <div class="info-row"><strong>จุดติดตั้ง:</strong> <span id="formPointCode">-</span></div>
+          <div class="info-row"><strong>พิกัด:</strong> <span id="formLocation">-</span></div>
+          <div class="info-row"><strong>อาคาร:</strong> <span id="formBuilding">-</span></div>
+          <div class="info-row"><strong>เขต:</strong> <span id="formHospitalZone">-</span></div>
+          <div class="info-row"><strong>สีถัง:</strong> <span id="formTankColor">-</span></div>
+        </div>
+
+        <div id="checkItemsWrap"></div>
+
+        <div class="label">หมายเหตุ</div>
+        <textarea id="formNote" class="textarea" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"></textarea>
+
+        <div class="form-actions">
+          <button id="btnBack" class="btn secondary" type="button">กลับ</button>
+          <button id="btnSaveCheck" class="btn" type="button">บันทึกข้อมูล</button>
+        </div>
       </div>
-    </div>
-
-    <div class="toolbar">
-      <input id="searchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร">
-      <button id="btnReload" class="btn">โหลดใหม่</button>
-    </div>
-
-    <div class="filter-row" id="filterRow">
-      <button class="filter-chip active" data-filter="all">ทั้งหมด</button>
-      <button class="filter-chip" data-filter="unchecked">ยังไม่ตรวจ</button>
-      <button class="filter-chip" data-filter="checked">ตรวจแล้ว</button>
-      <button class="filter-chip" data-filter="issue">พบปัญหา</button>
-      <button class="filter-chip" data-filter="red">ถังสีแดง</button>
-      <button class="filter-chip" data-filter="green">ถังสีเขียว</button>
-    </div>
-
-    <div id="status" class="status">กำลังเตรียมระบบ...</div>
-    <div id="error" class="error"></div>
-    <div id="list" class="list"></div>
+    </section>
   </div>
+
+  <div id="toast" class="toast hidden"></div>
 
   <script src="./app.js"></script>
 </body>

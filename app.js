@@ -10,6 +10,19 @@ const supabaseClient = createClient(
 
 let allRows = [];
 let activeFilter = 'all';
+let currentFormRow = null;
+
+const CHECK_FIELDS = [
+  { key: 'pressure_gauge', label: '1) มาตรวัดความดัน' },
+  { key: 'safety_pin_and_seal', label: '2) สลักนิรภัยและซีล' },
+  { key: 'connection_point', label: '3) จุดข้อต่อ' },
+  { key: 'squeeze_handle', label: '4) คันบีบ' },
+  { key: 'discharge_hose', label: '5) สายฉีดดับเพลิง' },
+  { key: 'external_condition', label: '6) สภาพภายนอก' },
+  { key: 'hose_quality', label: '7) คุณภาพสายดับเพลิง' },
+  { key: 'expiry_check', label: '8) เช็ควันหมดอายุ' },
+  { key: 'readiness', label: '9) ความพร้อมใช้งาน' }
+];
 
 const statusEl = document.getElementById('status');
 const errorEl = document.getElementById('error');
@@ -17,10 +30,24 @@ const listEl = document.getElementById('list');
 const searchInput = document.getElementById('searchInput');
 const btnReload = document.getElementById('btnReload');
 
+const listPage = document.getElementById('listPage');
+const formPage = document.getElementById('formPage');
+
 const totalCountEl = document.getElementById('totalCount');
 const checkedCountEl = document.getElementById('checkedCount');
 const uncheckedCountEl = document.getElementById('uncheckedCount');
 const issueCountEl = document.getElementById('issueCount');
+
+const formPointCodeEl = document.getElementById('formPointCode');
+const formLocationEl = document.getElementById('formLocation');
+const formBuildingEl = document.getElementById('formBuilding');
+const formHospitalZoneEl = document.getElementById('formHospitalZone');
+const formTankColorEl = document.getElementById('formTankColor');
+const checkItemsWrap = document.getElementById('checkItemsWrap');
+const formNoteEl = document.getElementById('formNote');
+const btnBack = document.getElementById('btnBack');
+const btnSaveCheck = document.getElementById('btnSaveCheck');
+const toastEl = document.getElementById('toast');
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -29,6 +56,15 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function showToast(message) {
+  toastEl.textContent = message;
+  toastEl.classList.remove('hidden');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => {
+    toastEl.classList.add('hidden');
+  }, 2200);
 }
 
 function getCardColorClass(tankColor) {
@@ -46,6 +82,10 @@ function getActionButtonText(row) {
   return row.checked ? 'แก้ไข<br>ข้อมูล' : 'บันทึก<br>การตรวจ';
 }
 
+function getTankColorLabel(tankColor) {
+  return String(tankColor || '').toLowerCase() === 'green' ? 'สีเขียว' : 'สีแดง';
+}
+
 function formatDateTime(value) {
   if (!value) return '';
   const d = new Date(value);
@@ -59,16 +99,18 @@ function formatDateTime(value) {
   });
 }
 
-function updateSummary(rows) {
-  const total = rows.length;
-  const checked = rows.filter(r => r.checked).length;
-  const unchecked = rows.filter(r => !r.checked).length;
-  const issues = rows.filter(r => String(r.overall_result || '') === 'พบปัญหา').length;
+function getCurrentMonthKey() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
 
-  totalCountEl.textContent = total;
-  checkedCountEl.textContent = checked;
-  uncheckedCountEl.textContent = unchecked;
-  issueCountEl.textContent = issues;
+function updateSummary(rows) {
+  totalCountEl.textContent = rows.length;
+  checkedCountEl.textContent = rows.filter(r => r.checked).length;
+  uncheckedCountEl.textContent = rows.filter(r => !r.checked).length;
+  issueCountEl.textContent = rows.filter(r => String(r.overall_result || '') === 'พบปัญหา').length;
 }
 
 function renderList(rows) {
@@ -97,17 +139,13 @@ function renderList(rows) {
       </div>
 
       <div class="inspection-right">
-        <button class="${getActionButtonClass(row)}" data-point-id="${row.point_id}">
+        <button class="${getActionButtonClass(row)}" type="button">
           ${getActionButtonText(row)}
         </button>
       </div>
     `;
 
-    const btn = card.querySelector('button');
-    btn.addEventListener('click', () => {
-      alert(`ต่อไปจะเปิดฟอร์มตรวจของ ${row.point_code}`);
-    });
-
+    card.querySelector('button').addEventListener('click', () => openCheckForm(row));
     listEl.appendChild(card);
   });
 }
@@ -123,24 +161,173 @@ function applyFilters() {
       String(row.hospital_zone || '').toLowerCase().includes(q);
 
     if (!matchKeyword) return false;
-
     if (activeFilter === 'unchecked') return !row.checked;
     if (activeFilter === 'checked') return !!row.checked;
     if (activeFilter === 'issue') return String(row.overall_result || '') === 'พบปัญหา';
     if (activeFilter === 'red') return String(row.tank_color || '').toLowerCase() === 'red';
     if (activeFilter === 'green') return String(row.tank_color || '').toLowerCase() === 'green';
-
     return true;
   });
 
   renderList(filtered);
 }
 
-function getCurrentMonthKey() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
+function showListPage() {
+  formPage.classList.add('hidden');
+  listPage.classList.remove('hidden');
+}
+
+function showFormPage() {
+  listPage.classList.add('hidden');
+  formPage.classList.remove('hidden');
+}
+
+function buildCheckItems(values = {}) {
+  checkItemsWrap.innerHTML = '';
+
+  CHECK_FIELDS.forEach(field => {
+    const wrap = document.createElement('div');
+    wrap.className = 'check-item';
+    wrap.innerHTML = `
+      <div class="check-name">${field.label}</div>
+      <div class="segment">
+        <button type="button" class="pass-btn" data-key="${field.key}" data-value="ผ่าน">ผ่าน</button>
+        <button type="button" class="fail-btn" data-key="${field.key}" data-value="ไม่ผ่าน">ไม่ผ่าน</button>
+      </div>
+    `;
+
+    const passBtn = wrap.querySelector('.pass-btn');
+    const failBtn = wrap.querySelector('.fail-btn');
+    const current = values[field.key] || '';
+
+    if (current === 'ผ่าน') passBtn.classList.add('active', 'pass');
+    if (current === 'ไม่ผ่าน') failBtn.classList.add('active', 'fail');
+
+    passBtn.addEventListener('click', () => {
+      passBtn.classList.add('active', 'pass');
+      failBtn.classList.remove('active', 'fail');
+    });
+
+    failBtn.addEventListener('click', () => {
+      failBtn.classList.add('active', 'fail');
+      passBtn.classList.remove('active', 'pass');
+    });
+
+    checkItemsWrap.appendChild(wrap);
+  });
+}
+
+function openCheckForm(row) {
+  currentFormRow = row;
+  formPointCodeEl.textContent = row.point_code || '-';
+  formLocationEl.textContent = row.location || '-';
+  formBuildingEl.textContent = row.building || '-';
+  formHospitalZoneEl.textContent = row.hospital_zone || '-';
+  formTankColorEl.textContent = getTankColorLabel(row.tank_color);
+  formNoteEl.value = row.note || '';
+  buildCheckItems(row.checkValues || {});
+  showFormPage();
+}
+
+function getFormValues() {
+  const values = {};
+  let incomplete = false;
+
+  CHECK_FIELDS.forEach(field => {
+    const passBtn = document.querySelector(`.pass-btn[data-key="${field.key}"]`);
+    const failBtn = document.querySelector(`.fail-btn[data-key="${field.key}"]`);
+
+    if (passBtn.classList.contains('active')) {
+      values[field.key] = 'ผ่าน';
+    } else if (failBtn.classList.contains('active')) {
+      values[field.key] = 'ไม่ผ่าน';
+    } else {
+      values[field.key] = '';
+      incomplete = true;
+    }
+  });
+
+  return { values, incomplete };
+}
+
+async function saveCheck() {
+  if (!currentFormRow) return;
+
+  const { values, incomplete } = getFormValues();
+
+  if (incomplete) {
+    alert('กรุณาเลือกผลการตรวจให้ครบทั้ง 9 ข้อ');
+    return;
+  }
+
+  btnSaveCheck.disabled = true;
+  btnSaveCheck.textContent = 'กำลังบันทึก...';
+
+  const monthKey = getCurrentMonthKey();
+  const overallResult = Object.values(values).includes('ไม่ผ่าน') ? 'พบปัญหา' : 'ปกติ';
+
+  const payload = {
+    point_id: currentFormRow.point_id,
+    asset_id: currentFormRow.asset_id || null,
+    check_month: monthKey,
+    checked_at: new Date().toISOString(),
+    checked_by: 'demo',
+    checked_by_name: 'ผู้ทดสอบระบบ',
+    inspected_device: navigator.userAgent,
+    pressure_gauge: values.pressure_gauge,
+    safety_pin_and_seal: values.safety_pin_and_seal,
+    connection_point: values.connection_point,
+    squeeze_handle: values.squeeze_handle,
+    discharge_hose: values.discharge_hose,
+    external_condition: values.external_condition,
+    hose_quality: values.hose_quality,
+    expiry_check: values.expiry_check,
+    readiness: values.readiness,
+    overall_result: overallResult,
+    note: formNoteEl.value.trim()
+  };
+
+  const { data: existing, error: checkError } = await supabaseClient
+    .from('checks')
+    .select('id')
+    .eq('point_id', currentFormRow.point_id)
+    .eq('check_month', monthKey)
+    .maybeSingle();
+
+  if (checkError) {
+    btnSaveCheck.disabled = false;
+    btnSaveCheck.textContent = 'บันทึกข้อมูล';
+    alert('ตรวจสอบข้อมูลเดิมไม่สำเร็จ: ' + checkError.message);
+    return;
+  }
+
+  let saveError = null;
+
+  if (existing?.id) {
+    const { error } = await supabaseClient
+      .from('checks')
+      .update(payload)
+      .eq('id', existing.id);
+    saveError = error;
+  } else {
+    const { error } = await supabaseClient
+      .from('checks')
+      .insert(payload);
+    saveError = error;
+  }
+
+  if (saveError) {
+    btnSaveCheck.disabled = false;
+    btnSaveCheck.textContent = 'บันทึกข้อมูล';
+    alert('บันทึกผลการตรวจไม่สำเร็จ: ' + saveError.message);
+    return;
+  }
+
+  btnSaveCheck.disabled = false;
+  btnSaveCheck.textContent = 'บันทึกข้อมูล';
+  showToast('บันทึกการตรวจสำเร็จ');
+  showListPage();
+  await loadInspectionData();
 }
 
 async function loadInspectionData() {
@@ -157,7 +344,7 @@ async function loadInspectionData() {
       .order('point_code', { ascending: true }),
     supabaseClient
       .from('checks')
-      .select('point_id, checked_at, overall_result')
+      .select('*')
       .eq('check_month', monthKey)
   ]);
 
@@ -180,11 +367,21 @@ async function loadInspectionData() {
 
   allRows = (points || []).map(row => {
     const check = checkMap.get(String(row.point_id));
+    const checkValues = {};
+
+    if (check) {
+      CHECK_FIELDS.forEach(field => {
+        checkValues[field.key] = check[field.key] || '';
+      });
+    }
+
     return {
       ...row,
       checked: !!check,
       checked_at: check?.checked_at || '',
-      overall_result: check?.overall_result || ''
+      overall_result: check?.overall_result || '',
+      note: check?.note || '',
+      checkValues
     };
   });
 
@@ -195,6 +392,8 @@ async function loadInspectionData() {
 
 searchInput.addEventListener('input', applyFilters);
 btnReload.addEventListener('click', loadInspectionData);
+btnBack.addEventListener('click', showListPage);
+btnSaveCheck.addEventListener('click', saveCheck);
 
 document.querySelectorAll('#filterRow .filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {
