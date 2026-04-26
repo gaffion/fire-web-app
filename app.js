@@ -92,6 +92,15 @@ function showToast(message) {
   }, 2200);
 }
 
+function bindEvent(element, eventName, handler, label) {
+  if (!element) {
+    console.warn(`Missing element for ${label || eventName}`);
+    return;
+  }
+
+  element.addEventListener(eventName, handler);
+}
+
 function setActiveNav(page) {
   navDashboard.classList.toggle('active', page === 'dashboard');
   navInspection.classList.toggle('active', page === 'inspection');
@@ -140,6 +149,8 @@ function showIssueFormPage() {
 function showFormPage() {
   dashboardPage.classList.add('hidden');
   inspectionPage.classList.add('hidden');
+  issuesPage.classList.add('hidden');
+  issueFormPage.classList.add('hidden');
   formPage.classList.remove('hidden');
   bottomNav.classList.add('hidden');
 }
@@ -219,6 +230,12 @@ function renderList(rows) {
         </button>
       </div>
     `;
+
+    card.querySelector('button').addEventListener('click', () => openCheckForm(row));
+    listEl.appendChild(card);
+  });
+}
+
 function renderIssueList(rows) {
   issueListEl.innerHTML = '';
 
@@ -228,7 +245,6 @@ function renderIssueList(rows) {
   }
 
   rows.forEach(row => {
-    const point = row.points || {};
     const badgeClass = row.fix_status === 'fixed' ? 'fixed' : 'pending';
     const badgeText = row.fix_status === 'fixed' ? 'ซ่อมแล้ว' : 'รอดำเนินการ';
 
@@ -237,11 +253,11 @@ function renderIssueList(rows) {
     card.innerHTML = `
       <div class="inspection-left">
         <div class="card-head">
-          <div class="inspection-code">${escapeHtml(point.point_code || '-')}</div>
+          <div class="inspection-code">${escapeHtml(row.point_code || '-')}</div>
           <span class="issue-badge ${badgeClass}">${badgeText}</span>
         </div>
-        <div class="inspection-location">${escapeHtml(point.location || '-')}</div>
-        <div class="inspection-meta">${escapeHtml(point.building || '-')} · ${escapeHtml(point.hospital_zone || '-')}</div>
+        <div class="inspection-location">${escapeHtml(row.location || '-')}</div>
+        <div class="inspection-meta">${escapeHtml(row.building || '-')} · ${escapeHtml(row.hospital_zone || '-')}</div>
         <div class="inspection-sub">ปัญหา: ${escapeHtml(row.problem_summary || '-')}</div>
         <div class="inspection-sub">บันทึกล่าสุด: ${escapeHtml(formatDateTime(row.updated_at || row.created_at || ''))}</div>
       </div>
@@ -260,11 +276,11 @@ function applyIssueFilters() {
   const q = issueSearchInput.value.trim().toLowerCase();
 
   const filtered = allIssues.filter(row => {
-    const point = row.points || {};
     const matchKeyword =
-      String(point.point_code || '').toLowerCase().includes(q) ||
-      String(point.location || '').toLowerCase().includes(q) ||
-      String(point.building || '').toLowerCase().includes(q) ||
+      String(row.point_code || '').toLowerCase().includes(q) ||
+      String(row.location || '').toLowerCase().includes(q) ||
+      String(row.building || '').toLowerCase().includes(q) ||
+      String(row.hospital_zone || '').toLowerCase().includes(q) ||
       String(row.problem_summary || '').toLowerCase().includes(q);
 
     if (!matchKeyword) return false;
@@ -278,11 +294,10 @@ function applyIssueFilters() {
 
 function openIssueForm(row) {
   currentIssueRow = row;
-  const point = row.points || {};
 
-  issueFormPointCodeEl.textContent = point.point_code || '-';
-  issueFormLocationEl.textContent = point.location || '-';
-  issueFormBuildingEl.textContent = `${point.building || '-'} · ${point.hospital_zone || '-'}`;
+  issueFormPointCodeEl.textContent = row.point_code || '-';
+  issueFormLocationEl.textContent = row.location || '-';
+  issueFormBuildingEl.textContent = `${row.building || '-'} · ${row.hospital_zone || '-'}`;
   issueFormSummaryEl.textContent = row.problem_summary || '-';
   issueFixStatusInput.value = row.fix_status || 'pending';
   issueFixNoteInput.value = row.fix_note || '';
@@ -328,19 +343,16 @@ async function loadIssuesData() {
   issueListEl.innerHTML = '';
 
   const { data, error } = await supabaseClient
-    .from('issues')
-    .select(`
-      *,
-      points:point_id (
-        point_code,
-        location,
-        building,
-        hospital_zone
-      )
-    `)
+    .from('v_issue_list')
+    .select('*')
     .order('created_at', { ascending: false });
 
   if (error) {
+    if (String(error.message || '').includes('v_issue_list')) {
+      await loadIssuesDataFallback();
+      return;
+    }
+
     issueStatusEl.textContent = 'โหลดข้อมูลไม่สำเร็จ';
     issueErrorEl.textContent = error.message;
     return;
@@ -351,9 +363,48 @@ async function loadIssuesData() {
   applyIssueFilters();
 }
 
-    card.querySelector('button').addEventListener('click', () => openCheckForm(row));
-    listEl.appendChild(card);
+async function loadIssuesDataFallback() {
+  const { data: issues, error: issuesError } = await supabaseClient
+    .from('issues')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (issuesError) {
+    issueStatusEl.textContent = 'โหลดข้อมูลไม่สำเร็จ';
+    issueErrorEl.textContent = issuesError.message;
+    return;
+  }
+
+  const pointIds = [...new Set((issues || []).map(row => row.point_id).filter(Boolean))];
+  let pointMap = new Map();
+
+  if (pointIds.length) {
+    const { data: points, error: pointsError } = await supabaseClient
+      .from('points')
+      .select('id, point_code, location, building, hospital_zone')
+      .in('id', pointIds);
+
+    if (pointsError) {
+      issueStatusEl.textContent = 'โหลดรายการปัญหาสำเร็จ แต่โหลดข้อมูลจุดติดตั้งไม่สำเร็จ';
+      issueErrorEl.textContent = pointsError.message;
+    } else {
+      pointMap = new Map((points || []).map(point => [String(point.id), point]));
+    }
+  }
+
+  allIssues = (issues || []).map(row => {
+    const point = pointMap.get(String(row.point_id)) || {};
+    return {
+      ...row,
+      point_code: point.point_code || '',
+      location: point.location || '',
+      building: point.building || '',
+      hospital_zone: point.hospital_zone || ''
+    };
   });
+
+  issueStatusEl.textContent = `โหลดข้อมูลสำเร็จ ${allIssues.length} รายการ`;
+  applyIssueFilters();
 }
 
 function applyFilters() {
@@ -454,7 +505,20 @@ function buildProblemSummary(values) {
   return failed.join(', ');
 }
 
-async function syncIssueForCheck({ checkId, pointId, overallResult, values }) {
+function buildIssueProblemSummary(point, values) {
+  const problemSummary = buildProblemSummary(values) || 'พบปัญหาจากการตรวจสอบ';
+  const pointDetails = [
+    point.point_code ? `จุดติดตั้ง: ${point.point_code}` : '',
+    point.location ? `พิกัด: ${point.location}` : '',
+    point.building ? `อาคาร: ${point.building}` : '',
+    point.hospital_zone ? `เขต: ${point.hospital_zone}` : ''
+  ].filter(Boolean);
+
+  if (!pointDetails.length) return problemSummary;
+  return `${problemSummary} | ${pointDetails.join(' | ')}`;
+}
+
+async function syncIssueForCheck({ checkId, point, overallResult, values }) {
   const { data: existingIssue, error: issueFindError } = await supabaseClient
     .from('issues')
     .select('*')
@@ -466,12 +530,12 @@ async function syncIssueForCheck({ checkId, pointId, overallResult, values }) {
   }
 
   if (overallResult === 'พบปัญหา') {
-    const problemSummary = buildProblemSummary(values);
+    const problemSummary = buildIssueProblemSummary(point, values);
 
     const issuePayload = {
-      point_id: pointId,
+      point_id: point.point_id,
       check_id: checkId,
-      problem_summary: problemSummary || 'พบปัญหาจากการตรวจสอบ',
+      problem_summary: problemSummary,
       reported_by: 'demo',
       reported_by_name: 'ผู้ทดสอบระบบ',
       fix_status: 'pending',
@@ -599,7 +663,7 @@ async function saveCheck() {
   try {
     await syncIssueForCheck({
       checkId: savedCheckId,
-      pointId: currentFormRow.point_id,
+      point: currentFormRow,
       overallResult,
       values
     });
@@ -669,22 +733,25 @@ async function loadInspectionData() {
   applyFilters();
 }
 
-searchInput.addEventListener('input', applyFilters);
-btnReload.addEventListener('click', loadInspectionData);
-btnBack.addEventListener('click', showInspectionPage);
-btnSaveCheck.addEventListener('click', saveCheck);
-navDashboard.addEventListener('click', showDashboardPage);
-navInspection.addEventListener('click', showInspectionPage);
+bindEvent(searchInput, 'input', applyFilters, 'searchInput');
+bindEvent(btnReload, 'click', loadInspectionData, 'btnReload');
+bindEvent(btnBack, 'click', showInspectionPage, 'btnBack');
+bindEvent(btnSaveCheck, 'click', saveCheck, 'btnSaveCheck');
+bindEvent(navDashboard, 'click', showDashboardPage, 'navDashboard');
+bindEvent(navInspection, 'click', async () => {
+  showInspectionPage();
+  await loadInspectionData();
+}, 'navInspection');
 
-navIssues.addEventListener('click', async () => {
+bindEvent(navIssues, 'click', async () => {
   showIssuesPage();
   await loadIssuesData();
-});
+}, 'navIssues');
 
-issueSearchInput.addEventListener('input', applyIssueFilters);
-btnReloadIssues.addEventListener('click', loadIssuesData);
-btnBackIssue.addEventListener('click', showIssuesPage);
-btnSaveIssue.addEventListener('click', saveIssueForm);
+bindEvent(issueSearchInput, 'input', applyIssueFilters, 'issueSearchInput');
+bindEvent(btnReloadIssues, 'click', loadIssuesData, 'btnReloadIssues');
+bindEvent(btnBackIssue, 'click', showIssuesPage, 'btnBackIssue');
+bindEvent(btnSaveIssue, 'click', saveIssueForm, 'btnSaveIssue');
 
 document.querySelectorAll('#filterRow .filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {
