@@ -6,12 +6,163 @@
   <title>Fire Web App</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+
+    .app {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 18px 14px 28px;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .subtitle {
+      margin: 6px 0 18px;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .search {
+      flex: 1;
+      height: 44px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      padding: 0 14px;
+      font-size: 15px;
+      background: white;
+      box-sizing: border-box;
+    }
+
+    .btn {
+      height: 44px;
+      padding: 0 14px;
+      border: none;
+      border-radius: 12px;
+      background: #2563eb;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .status {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+
+    .error {
+      color: #b91c1c;
+      font-size: 14px;
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+    }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card {
+      border-radius: 18px;
+      border: 1px solid #e2e8f0;
+      padding: 14px;
+      background: white;
+      box-sizing: border-box;
+    }
+
+    .card.red {
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
+
+    .card.green {
+      background: #dcfce7;
+      border-color: #86efac;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .point-code {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin: 0;
+    }
+
+    .badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.75);
+      white-space: nowrap;
+    }
+
+    .location {
+      margin-top: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .meta {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .muted {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .empty {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 18px;
+      text-align: center;
+      color: #64748b;
+    }
+  </style>
 </head>
 <body>
-  <h1>Fire Web App</h1>
-  <p>ทดสอบ GitHub Pages</p>
+  <div class="app">
+    <h1 class="title">Fire Web App</h1>
+    <p class="subtitle">รายการจุดติดตั้งถังดับเพลิง</p>
 
-  <div id="result">กำลังโหลด...</div>
+    <div class="toolbar">
+      <input id="searchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร">
+      <button id="btnReload" class="btn">โหลดใหม่</button>
+    </div>
+
+    <div id="status" class="status">กำลังเตรียมระบบ...</div>
+    <div id="error" class="error"></div>
+    <div id="list" class="list"></div>
+  </div>
 
   <script src="./app.js"></script>
 </body>
