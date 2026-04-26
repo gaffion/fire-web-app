@@ -3,9 +3,7 @@ const { createClient } = supabase;
 const supabaseClient = createClient(
   window.APP_CONFIG.supabaseUrl,
   window.APP_CONFIG.supabaseAnonKey,
-  {
-    db: { schema: 'fire' }
-  }
+  { db: { schema: 'fire' } }
 );
 
 let allRows = [];
@@ -24,14 +22,19 @@ const CHECK_FIELDS = [
   { key: 'readiness', label: '9) ความพร้อมใช้งาน' }
 ];
 
+const dashboardPage = document.getElementById('dashboardPage');
+const inspectionPage = document.getElementById('inspectionPage');
+const formPage = document.getElementById('formPage');
+
+const navDashboard = document.getElementById('navDashboard');
+const navInspection = document.getElementById('navInspection');
+const bottomNav = document.getElementById('bottomNav');
+
 const statusEl = document.getElementById('status');
 const errorEl = document.getElementById('error');
 const listEl = document.getElementById('list');
 const searchInput = document.getElementById('searchInput');
 const btnReload = document.getElementById('btnReload');
-
-const listPage = document.getElementById('listPage');
-const formPage = document.getElementById('formPage');
 
 const totalCountEl = document.getElementById('totalCount');
 const checkedCountEl = document.getElementById('checkedCount');
@@ -65,6 +68,34 @@ function showToast(message) {
   window.__toastTimer = setTimeout(() => {
     toastEl.classList.add('hidden');
   }, 2200);
+}
+
+function setActiveNav(page) {
+  navDashboard.classList.toggle('active', page === 'dashboard');
+  navInspection.classList.toggle('active', page === 'inspection');
+}
+
+function showDashboardPage() {
+  dashboardPage.classList.remove('hidden');
+  inspectionPage.classList.add('hidden');
+  formPage.classList.add('hidden');
+  bottomNav.classList.remove('hidden');
+  setActiveNav('dashboard');
+}
+
+function showInspectionPage() {
+  dashboardPage.classList.add('hidden');
+  inspectionPage.classList.remove('hidden');
+  formPage.classList.add('hidden');
+  bottomNav.classList.remove('hidden');
+  setActiveNav('inspection');
+}
+
+function showFormPage() {
+  dashboardPage.classList.add('hidden');
+  inspectionPage.classList.add('hidden');
+  formPage.classList.remove('hidden');
+  bottomNav.classList.add('hidden');
 }
 
 function getCardColorClass(tankColor) {
@@ -101,9 +132,7 @@ function formatDateTime(value) {
 
 function getCurrentMonthKey() {
   const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function updateSummary(rows) {
@@ -172,16 +201,6 @@ function applyFilters() {
   renderList(filtered);
 }
 
-function showListPage() {
-  formPage.classList.add('hidden');
-  listPage.classList.remove('hidden');
-}
-
-function showFormPage() {
-  listPage.classList.add('hidden');
-  formPage.classList.remove('hidden');
-}
-
 function buildCheckItems(values = {}) {
   checkItemsWrap.innerHTML = '';
 
@@ -191,8 +210,8 @@ function buildCheckItems(values = {}) {
     wrap.innerHTML = `
       <div class="check-name">${field.label}</div>
       <div class="segment">
-        <button type="button" class="pass-btn" data-key="${field.key}" data-value="ผ่าน">ผ่าน</button>
-        <button type="button" class="fail-btn" data-key="${field.key}" data-value="ไม่ผ่าน">ไม่ผ่าน</button>
+        <button type="button" class="pass-btn" data-key="${field.key}">ผ่าน</button>
+        <button type="button" class="fail-btn" data-key="${field.key}">ไม่ผ่าน</button>
       </div>
     `;
 
@@ -254,7 +273,6 @@ async function saveCheck() {
   if (!currentFormRow) return;
 
   const { values, incomplete } = getFormValues();
-
   if (incomplete) {
     alert('กรุณาเลือกผลการตรวจให้ครบทั้ง 9 ข้อ');
     return;
@@ -304,30 +322,24 @@ async function saveCheck() {
   let saveError = null;
 
   if (existing?.id) {
-    const { error } = await supabaseClient
-      .from('checks')
-      .update(payload)
-      .eq('id', existing.id);
+    const { error } = await supabaseClient.from('checks').update(payload).eq('id', existing.id);
     saveError = error;
   } else {
-    const { error } = await supabaseClient
-      .from('checks')
-      .insert(payload);
+    const { error } = await supabaseClient.from('checks').insert(payload);
     saveError = error;
-  }
-
-  if (saveError) {
-    btnSaveCheck.disabled = false;
-    btnSaveCheck.textContent = 'บันทึกข้อมูล';
-    alert('บันทึกผลการตรวจไม่สำเร็จ: ' + saveError.message);
-    return;
   }
 
   btnSaveCheck.disabled = false;
   btnSaveCheck.textContent = 'บันทึกข้อมูล';
+
+  if (saveError) {
+    alert('บันทึกผลการตรวจไม่สำเร็จ: ' + saveError.message);
+    return;
+  }
+
   showToast('บันทึกการตรวจสำเร็จ');
-  showListPage();
   await loadInspectionData();
+  showInspectionPage();
 }
 
 async function loadInspectionData() {
@@ -338,14 +350,8 @@ async function loadInspectionData() {
   const monthKey = getCurrentMonthKey();
 
   const [{ data: points, error: pointsError }, { data: checks, error: checksError }] = await Promise.all([
-    supabaseClient
-      .from('v_point_current_asset')
-      .select('*')
-      .order('point_code', { ascending: true }),
-    supabaseClient
-      .from('checks')
-      .select('*')
-      .eq('check_month', monthKey)
+    supabaseClient.from('v_point_current_asset').select('*').order('point_code', { ascending: true }),
+    supabaseClient.from('checks').select('*').eq('check_month', monthKey)
   ]);
 
   if (pointsError) {
@@ -361,14 +367,11 @@ async function loadInspectionData() {
   }
 
   const checkMap = new Map();
-  (checks || []).forEach(item => {
-    checkMap.set(String(item.point_id), item);
-  });
+  (checks || []).forEach(item => checkMap.set(String(item.point_id), item));
 
   allRows = (points || []).map(row => {
     const check = checkMap.get(String(row.point_id));
     const checkValues = {};
-
     if (check) {
       CHECK_FIELDS.forEach(field => {
         checkValues[field.key] = check[field.key] || '';
@@ -392,8 +395,10 @@ async function loadInspectionData() {
 
 searchInput.addEventListener('input', applyFilters);
 btnReload.addEventListener('click', loadInspectionData);
-btnBack.addEventListener('click', showListPage);
+btnBack.addEventListener('click', showInspectionPage);
 btnSaveCheck.addEventListener('click', saveCheck);
+navDashboard.addEventListener('click', showDashboardPage);
+navInspection.addEventListener('click', showInspectionPage);
 
 document.querySelectorAll('#filterRow .filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -405,3 +410,4 @@ document.querySelectorAll('#filterRow .filter-chip').forEach(btn => {
 });
 
 loadInspectionData();
+showDashboardPage();

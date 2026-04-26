@@ -13,23 +13,19 @@
       background: #f8fafc;
       color: #0f172a;
     }
-
     .app {
       max-width: 760px;
       margin: 0 auto;
-      padding: 18px 14px 28px;
+      padding: 18px 14px 100px;
+      box-sizing: border-box;
     }
-
-    .hidden {
-      display: none !important;
-    }
+    .hidden { display: none !important; }
 
     .title {
       font-size: 24px;
       font-weight: 800;
       margin: 0;
     }
-
     .subtitle {
       margin: 6px 0 18px;
       color: #64748b;
@@ -42,7 +38,6 @@
       gap: 10px;
       margin-bottom: 16px;
     }
-
     .summary-card {
       background: white;
       border: 1px solid #e2e8f0;
@@ -52,14 +47,12 @@
       justify-content: space-between;
       align-items: center;
     }
-
     .summary-left {
       display: flex;
       align-items: center;
       gap: 12px;
       min-width: 0;
     }
-
     .summary-icon {
       width: 42px;
       height: 42px;
@@ -70,13 +63,11 @@
       font-size: 20px;
       flex-shrink: 0;
     }
-
     .summary-label {
       font-size: 17px;
       font-weight: 700;
       line-height: 1.2;
     }
-
     .summary-value {
       font-size: 32px;
       font-weight: 800;
@@ -88,7 +79,6 @@
       gap: 8px;
       margin-bottom: 12px;
     }
-
     .search {
       flex: 1;
       height: 44px;
@@ -99,7 +89,6 @@
       background: white;
       box-sizing: border-box;
     }
-
     .btn {
       height: 44px;
       padding: 0 14px;
@@ -110,7 +99,6 @@
       font-weight: 700;
       cursor: pointer;
     }
-
     .btn.secondary {
       background: #e2e8f0;
       color: #1f2937;
@@ -123,11 +111,7 @@
       margin-bottom: 14px;
       padding-bottom: 2px;
     }
-
-    .filter-row::-webkit-scrollbar {
-      display: none;
-    }
-
+    .filter-row::-webkit-scrollbar { display: none; }
     .filter-chip {
       height: 38px;
       padding: 0 14px;
@@ -141,7 +125,6 @@
       cursor: pointer;
       flex-shrink: 0;
     }
-
     .filter-chip.active {
       background: #2563eb;
       color: #fff;
@@ -153,7 +136,6 @@
       color: #64748b;
       margin-bottom: 12px;
     }
-
     .error {
       color: #b91c1c;
       font-size: 14px;
@@ -166,7 +148,6 @@
       flex-direction: column;
       gap: 10px;
     }
-
     .inspection-card {
       display: flex;
       align-items: center;
@@ -177,55 +158,46 @@
       padding: 12px;
       box-sizing: border-box;
     }
-
     .inspection-card.red {
       background: #fee2e2;
       border-color: #fca5a5;
     }
-
     .inspection-card.green {
       background: #dcfce7;
       border-color: #86efac;
     }
-
     .inspection-left {
       flex: 1;
       min-width: 0;
     }
-
     .inspection-code {
       font-size: 18px;
       font-weight: 800;
       line-height: 1.1;
       margin: 0;
     }
-
     .inspection-location {
       margin-top: 8px;
       font-size: 14px;
       font-weight: 700;
       color: #1f2937;
     }
-
     .inspection-meta {
       margin-top: 4px;
       font-size: 12px;
       color: #475569;
     }
-
     .inspection-sub {
       margin-top: 4px;
       font-size: 11px;
       color: #64748b;
     }
-
     .inspection-right {
       width: 92px;
       flex-shrink: 0;
       display: flex;
       align-items: center;
     }
-
     .inspection-action-btn {
       width: 100%;
       min-height: 82px;
@@ -239,15 +211,8 @@
       color: white;
       cursor: pointer;
     }
-
-    .inspection-action-btn.red {
-      background: #ef4444;
-    }
-
-    .inspection-action-btn.green {
-      background: #22c55e;
-    }
-
+    .inspection-action-btn.red { background: #ef4444; }
+    .inspection-action-btn.green { background: #22c55e; }
     .inspection-action-btn.edit {
       background: #e2e8f0;
       color: #1f2937;
@@ -269,21 +234,11 @@
       padding: 16px;
       margin-bottom: 12px;
     }
-
-    .form-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-
     .form-title {
       font-size: 20px;
       font-weight: 800;
-      margin: 0;
+      margin: 0 0 14px;
     }
-
     .info-box {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
@@ -291,15 +246,11 @@
       padding: 12px;
       margin-bottom: 14px;
     }
-
     .info-row {
       margin-bottom: 6px;
       font-size: 14px;
     }
-
-    .info-row:last-child {
-      margin-bottom: 0;
-    }
+    .info-row:last-child { margin-bottom: 0; }
 
     .label {
       font-size: 12px;
@@ -307,7 +258,6 @@
       font-weight: 700;
       margin-bottom: 6px;
     }
-
     .check-item {
       background: #fff;
       border: 1px solid #e2e8f0;
@@ -315,19 +265,16 @@
       padding: 12px;
       margin-bottom: 10px;
     }
-
     .check-name {
       font-size: 14px;
       font-weight: 700;
       margin-bottom: 10px;
     }
-
     .segment {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
-
     .segment button {
       height: 42px;
       border-radius: 12px;
@@ -336,19 +283,16 @@
       font-weight: 700;
       cursor: pointer;
     }
-
     .segment button.active.pass {
       background: #22c55e;
       color: white;
       border-color: #22c55e;
     }
-
     .segment button.active.fail {
       background: #ef4444;
       color: white;
       border-color: #ef4444;
     }
-
     .textarea {
       width: 100%;
       min-height: 90px;
@@ -359,7 +303,6 @@
       box-sizing: border-box;
       resize: vertical;
     }
-
     .form-actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -367,11 +310,40 @@
       margin-top: 16px;
     }
 
+    .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: white;
+      border-top: 1px solid #e2e8f0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+      box-sizing: border-box;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .nav-btn {
+      height: 46px;
+      border: none;
+      border-radius: 14px;
+      background: #e2e8f0;
+      color: #1f2937;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .nav-btn.active {
+      background: #2563eb;
+      color: white;
+    }
+
     .toast {
       position: fixed;
       left: 50%;
       transform: translateX(-50%);
-      bottom: 24px;
+      bottom: 80px;
       background: #16a34a;
       color: white;
       padding: 12px 16px;
@@ -385,9 +357,9 @@
 </head>
 <body>
   <div class="app">
-    <section id="listPage">
+    <section id="dashboardPage">
       <h1 class="title">Fire Web App</h1>
-      <p class="subtitle">รายการตรวจสอบถังดับเพลิง</p>
+      <p class="subtitle">ภาพรวมการตรวจถังดับเพลิง</p>
 
       <div class="summary-grid">
         <div class="summary-card">
@@ -422,6 +394,11 @@
           <div id="issueCount" class="summary-value" style="color:#b45309;">0</div>
         </div>
       </div>
+    </section>
+
+    <section id="inspectionPage" class="hidden">
+      <h1 class="title">ตรวจสอบถังดับเพลิง</h1>
+      <p class="subtitle">รายการจุดติดตั้งประจำเดือนปัจจุบัน</p>
 
       <div class="toolbar">
         <input id="searchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร">
@@ -444,9 +421,7 @@
 
     <section id="formPage" class="hidden">
       <div class="form-card">
-        <div class="form-header">
-          <h2 class="form-title">บันทึกผลการตรวจ</h2>
-        </div>
+        <h2 class="form-title">บันทึกผลการตรวจ</h2>
 
         <div class="info-box">
           <div class="info-row"><strong>จุดติดตั้ง:</strong> <span id="formPointCode">-</span></div>
@@ -467,6 +442,11 @@
         </div>
       </div>
     </section>
+  </div>
+
+  <div class="bottom-nav" id="bottomNav">
+    <button id="navDashboard" class="nav-btn active" type="button">หน้าหลัก</button>
+    <button id="navInspection" class="nav-btn" type="button">ตรวจสอบ</button>
   </div>
 
   <div id="toast" class="toast hidden"></div>
