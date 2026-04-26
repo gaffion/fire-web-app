@@ -158,64 +158,99 @@
       gap: 10px;
     }
 
-    .card {
-      border-radius: 18px;
-      border: 1px solid #e2e8f0;
-      padding: 14px;
-      background: white;
-      box-sizing: border-box;
-    }
-
-    .card.red {
-      background: #fee2e2;
-      border-color: #fca5a5;
-    }
-
-    .card.green {
-      background: #dcfce7;
-      border-color: #86efac;
-    }
-
-    .card-head {
+    .inspection-card {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
+      border-radius: 18px;
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+      box-sizing: border-box;
     }
 
-    .point-code {
-      font-size: 20px;
+    .inspection-card.red {
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
+
+    .inspection-card.green {
+      background: #dcfce7;
+      border-color: #86efac;
+    }
+
+    .inspection-left {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .inspection-code {
+      font-size: 18px;
       font-weight: 800;
       line-height: 1.1;
       margin: 0;
     }
 
-    .badge {
-      font-size: 12px;
-      font-weight: 700;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.75);
-      white-space: nowrap;
-    }
-
-    .location {
+    .inspection-location {
       margin-top: 8px;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 700;
       color: #1f2937;
     }
 
-    .meta {
-      margin-top: 6px;
-      font-size: 13px;
+    .inspection-meta {
+      margin-top: 4px;
+      font-size: 12px;
       color: #475569;
     }
 
-    .muted {
-      margin-top: 6px;
-      font-size: 12px;
+    .inspection-sub {
+      margin-top: 4px;
+      font-size: 11px;
       color: #64748b;
+    }
+
+    .inspection-right {
+      width: 92px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .inspection-action-btn {
+      width: 100%;
+      min-height: 82px;
+      border-radius: 18px;
+      border: none;
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.25;
+      text-align: center;
+      padding: 6px 4px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .inspection-action-btn.red {
+      background: #ef4444;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.18);
+    }
+
+    .inspection-action-btn.green {
+      background: #22c55e;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.18);
+    }
+
+    .inspection-action-btn.edit {
+      background: #e2e8f0;
+      color: #1f2937;
+      box-shadow: none;
+    }
+
+    .inspection-action-btn:active,
+    .btn:active,
+    .filter-chip:active {
+      transform: scale(0.98);
     }
 
     .empty {
@@ -231,7 +266,7 @@
 <body>
   <div class="app">
     <h1 class="title">Fire Web App</h1>
-    <p class="subtitle">รายการจุดติดตั้งถังดับเพลิง</p>
+    <p class="subtitle">รายการตรวจสอบถังดับเพลิง</p>
 
     <div class="summary-grid">
       <div class="summary-card">
@@ -244,26 +279,26 @@
 
       <div class="summary-card">
         <div class="summary-left">
-          <div class="summary-icon" style="background:#dcfce7;">🟢</div>
-          <div class="summary-label" style="color:#166534;">ถังสีเขียว</div>
+          <div class="summary-icon" style="background:#dbeafe;">✅</div>
+          <div class="summary-label" style="color:#2563eb;">ตรวจแล้ว</div>
         </div>
-        <div id="greenCount" class="summary-value" style="color:#166534;">0</div>
+        <div id="checkedCount" class="summary-value" style="color:#2563eb;">0</div>
       </div>
 
       <div class="summary-card">
         <div class="summary-left">
-          <div class="summary-icon" style="background:#fee2e2;">🔴</div>
-          <div class="summary-label" style="color:#b91c1c;">ถังสีแดง</div>
+          <div class="summary-icon" style="background:#fee2e2;">⏳</div>
+          <div class="summary-label" style="color:#dc2626;">ยังไม่ตรวจ</div>
         </div>
-        <div id="redCount" class="summary-value" style="color:#b91c1c;">0</div>
+        <div id="uncheckedCount" class="summary-value" style="color:#dc2626;">0</div>
       </div>
 
       <div class="summary-card">
         <div class="summary-left">
           <div class="summary-icon" style="background:#fef3c7;">⚠️</div>
-          <div class="summary-label" style="color:#b45309;">ใกล้หมดอายุ</div>
+          <div class="summary-label" style="color:#b45309;">พบปัญหา</div>
         </div>
-        <div id="expireSoonCount" class="summary-value" style="color:#b45309;">0</div>
+        <div id="issueCount" class="summary-value" style="color:#b45309;">0</div>
       </div>
     </div>
 
@@ -274,10 +309,11 @@
 
     <div class="filter-row" id="filterRow">
       <button class="filter-chip active" data-filter="all">ทั้งหมด</button>
+      <button class="filter-chip" data-filter="unchecked">ยังไม่ตรวจ</button>
+      <button class="filter-chip" data-filter="checked">ตรวจแล้ว</button>
+      <button class="filter-chip" data-filter="issue">พบปัญหา</button>
       <button class="filter-chip" data-filter="red">ถังสีแดง</button>
       <button class="filter-chip" data-filter="green">ถังสีเขียว</button>
-      <button class="filter-chip" data-filter="expire_soon">ใกล้หมดอายุ</button>
-      <button class="filter-chip" data-filter="no_expiry">ไม่ระบุวันหมดอายุ</button>
     </div>
 
     <div id="status" class="status">กำลังเตรียมระบบ...</div>
