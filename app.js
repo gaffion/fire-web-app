@@ -16,6 +16,7 @@ let pendingIssueCount = 0;
 let allPoints = [];
 let activePointFilter = 'all';
 let currentPointRow = null;
+let isCreatingPoint = false;
 
 const CHECK_FIELDS = [
   { key: 'pressure_gauge', label: '1) มาตรวัดความดัน' },
@@ -86,8 +87,10 @@ const pointErrorEl = document.getElementById('pointError');
 const pointListEl = document.getElementById('pointList');
 const pointSearchInput = document.getElementById('pointSearchInput');
 const btnReloadPoints = document.getElementById('btnReloadPoints');
+const btnAddPoint = document.getElementById('btnAddPoint');
 
 const pointFormPage = document.getElementById('pointFormPage');
+const pointFormTitleEl = document.getElementById('pointFormTitle');
 
 const pointFormCodeEl = document.getElementById('pointFormCode');
 const pointFormLocationEl = document.getElementById('pointFormLocation');
@@ -99,6 +102,7 @@ const pointFormTankColorEl = document.getElementById('pointFormTankColor');
 const pointFormAssetStatusEl = document.getElementById('pointFormAssetStatus');
 const pointFormExpiryDateEl = document.getElementById('pointFormExpiryDate');
 const pointFormAssetNoteEl = document.getElementById('pointFormAssetNote');
+const pointAssetHistoryListEl = document.getElementById('pointAssetHistoryList');
 
 const btnBackPointForm = document.getElementById('btnBackPointForm');
 const btnSavePointForm = document.getElementById('btnSavePointForm');
@@ -225,6 +229,13 @@ function getActionButtonText(row) {
 
 function getTankColorLabel(tankColor) {
   return String(tankColor || '').toLowerCase() === 'green' ? 'สีเขียว' : 'สีแดง';
+}
+
+function getTankColorFullLabel(tankColor) {
+  const color = String(tankColor || '').toLowerCase();
+  if (color === 'green') return 'ถังสีเขียว';
+  if (color === 'red') return 'ถังสีแดง';
+  return tankColor || '-';
 }
 
 function formatDateTime(value) {
@@ -897,8 +908,86 @@ function formatDateForInput(value) {
   return d.toISOString().slice(0, 10);
 }
 
-function openPointForm(row) {
+async function loadPointAssetHistory(pointId) {
+  if (!pointId) {
+    renderPointAssetHistory([]);
+    return;
+  }
+
+  pointAssetHistoryListEl.innerHTML = `<div class="empty">กำลังโหลดประวัติถัง...</div>`;
+
+  const { data, error } = await supabaseClient
+    .from('assets')
+    .select('id, install_round, tank_color, asset_status, installed_at, removed_at, remove_reason, note')
+    .eq('point_id', pointId)
+    .order('install_round', { ascending: false })
+    .order('installed_at', { ascending: false })
+    .order('id', { ascending: false });
+
+  if (error) {
+    pointAssetHistoryListEl.innerHTML = `<div class="empty">โหลดประวัติถังไม่สำเร็จ</div>`;
+    alert('โหลดประวัติถังไม่สำเร็จ: ' + error.message);
+    return;
+  }
+
+  renderPointAssetHistory(data || []);
+}
+
+function renderPointAssetHistory(rows) {
+  pointAssetHistoryListEl.innerHTML = '';
+
+  if (!rows.length) {
+    pointAssetHistoryListEl.innerHTML = `<div class="empty">ยังไม่มีประวัติถังย้อนหลัง</div>`;
+    return;
+  }
+
+  rows.forEach(row => {
+    const card = document.createElement('div');
+    card.className = 'asset-history-card';
+
+    card.innerHTML = `
+      <div class="info-row"><strong>รอบติดตั้ง:</strong> ${escapeHtml(row.install_round || '-')}</div>
+      <div class="info-row"><strong>สีถัง:</strong> ${escapeHtml(getTankColorFullLabel(row.tank_color))}</div>
+      <div class="info-row"><strong>สถานะ:</strong> ${escapeHtml(row.asset_status || '-')}</div>
+      <div class="info-row"><strong>ติดตั้งเมื่อ:</strong> ${escapeHtml(formatDateTime(row.installed_at) || '-')}</div>
+      <div class="info-row"><strong>ถอดเมื่อ:</strong> ${escapeHtml(formatDateTime(row.removed_at) || '-')}</div>
+      <div class="info-row"><strong>เหตุผลถอด:</strong> ${escapeHtml(row.remove_reason || '-')}</div>
+      <div class="info-row"><strong>หมายเหตุ:</strong> ${escapeHtml(row.note || '-')}</div>
+    `;
+
+    pointAssetHistoryListEl.appendChild(card);
+  });
+}
+
+function resetPointForm() {
+  pointFormCodeEl.value = '';
+  pointFormLocationEl.value = '';
+  pointFormBuildingEl.value = '';
+  pointFormHospitalZoneEl.value = '';
+  pointFormNoteEl.value = '';
+  pointFormTankColorEl.value = 'red';
+  pointFormAssetStatusEl.value = 'active';
+  pointFormExpiryDateEl.value = '';
+  pointFormAssetNoteEl.value = '';
+}
+
+function openNewPointForm() {
+  isCreatingPoint = true;
+  currentPointRow = null;
+  resetPointForm();
+  pointFormTitleEl.textContent = 'เพิ่มจุดติดตั้ง';
+  btnReplaceAsset.classList.add('hidden');
+  btnReplaceAsset.disabled = true;
+  renderPointAssetHistory([]);
+  showPointFormPage();
+}
+
+async function openPointForm(row) {
+  isCreatingPoint = false;
   currentPointRow = row;
+  pointFormTitleEl.textContent = 'จัดการจุดติดตั้ง';
+  btnReplaceAsset.classList.remove('hidden');
+  btnReplaceAsset.disabled = false;
 
   pointFormCodeEl.value = row.point_code || '';
   pointFormLocationEl.value = row.location || '';
@@ -912,9 +1001,111 @@ function openPointForm(row) {
   pointFormAssetNoteEl.value = row.asset_note || '';
 
   showPointFormPage();
+  await loadPointAssetHistory(row.point_id);
+}
+
+async function createPointWithAsset() {
+  btnSavePointForm.disabled = true;
+  btnSavePointForm.textContent = 'กำลังบันทึก...';
+
+  const pointPayload = {
+    point_code: pointFormCodeEl.value.trim(),
+    location: pointFormLocationEl.value.trim(),
+    building: pointFormBuildingEl.value.trim(),
+    hospital_zone: pointFormHospitalZoneEl.value.trim(),
+    note: pointFormNoteEl.value.trim()
+  };
+
+  if (!pointPayload.point_code || !pointPayload.location || !pointPayload.building || !pointPayload.hospital_zone) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('กรุณากรอกข้อมูลจุดติดตั้งให้ครบ');
+    return;
+  }
+
+  const { data: duplicatePoints, error: duplicateError } = await supabaseClient
+    .from('points')
+    .select('id, point_code')
+    .eq('point_code', pointPayload.point_code);
+
+  if (duplicateError) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('ตรวจสอบหมายเลขจุดติดตั้งไม่สำเร็จ: ' + duplicateError.message);
+    return;
+  }
+
+  if ((duplicatePoints || []).length) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('หมายเลขจุดติดตั้งนี้ถูกใช้แล้ว');
+    return;
+  }
+
+  const { data: insertedPoint, error: pointError } = await supabaseClient
+    .from('points')
+    .insert(pointPayload)
+    .select('id, point_code, location, building, hospital_zone, note')
+    .maybeSingle();
+
+  if (pointError) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('เพิ่มข้อมูลจุดติดตั้งไม่สำเร็จ: ' + pointError.message);
+    return;
+  }
+
+  if (!insertedPoint) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('ไม่สามารถเพิ่มข้อมูลจุดติดตั้งได้ อาจติด policy หรือไม่พบแถวข้อมูล');
+    return;
+  }
+
+  const { data: insertedAsset, error: assetError } = await supabaseClient
+    .from('assets')
+    .insert({
+      point_id: insertedPoint.id,
+      install_round: 1,
+      tank_color: pointFormTankColorEl.value,
+      asset_status: 'active',
+      expiry_date: pointFormExpiryDateEl.value || null,
+      installed_at: new Date().toISOString(),
+      note: pointFormAssetNoteEl.value.trim()
+    })
+    .select('id')
+    .maybeSingle();
+
+  if (assetError) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('เพิ่มข้อมูลถังไม่สำเร็จ: ' + assetError.message);
+    return;
+  }
+
+  if (!insertedAsset) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('ไม่สามารถเพิ่มข้อมูลถังได้ อาจติด policy หรือไม่พบแถวข้อมูล');
+    return;
+  }
+
+  btnSavePointForm.disabled = false;
+  btnSavePointForm.textContent = 'บันทึกข้อมูล';
+  isCreatingPoint = false;
+
+  showToast('เพิ่มจุดติดตั้งสำเร็จ');
+  await loadPointsData();
+  await loadInspectionData();
+  showPointsPage();
 }
 
 async function savePointForm() {
+  if (isCreatingPoint) {
+    await createPointWithAsset();
+    return;
+  }
+
   if (!currentPointRow) return;
 
   btnSavePointForm.disabled = true;
@@ -1163,6 +1354,7 @@ bindEvent(navPoints, 'click', async () => {
 
 bindEvent(pointSearchInput, 'input', applyPointFilters, 'pointSearchInput');
 bindEvent(btnReloadPoints, 'click', loadPointsData, 'btnReloadPoints');
+bindEvent(btnAddPoint, 'click', openNewPointForm, 'btnAddPoint');
 
 bindEvent(btnBackPointForm, 'click', showPointsPage, 'btnBackPointForm');
 bindEvent(btnSavePointForm, 'click', savePointForm, 'btnSavePointForm');

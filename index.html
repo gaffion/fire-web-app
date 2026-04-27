@@ -79,6 +79,10 @@
       gap: 8px;
       margin-bottom: 12px;
     }
+    .point-add-btn {
+      width: 100%;
+      margin-bottom: 12px;
+    }
     .search {
       flex: 1;
       height: 44px;
@@ -315,6 +319,30 @@
     .form-actions .full {
       grid-column: 1 / -1;
     }
+    .asset-history {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .asset-history-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0 0 10px;
+    }
+    .asset-history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .asset-history-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .asset-history-card .info-row {
+      font-size: 13px;
+    }
 
     .bottom-nav {
       position: fixed;
@@ -472,6 +500,7 @@
         <input id="pointSearchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร">
         <button id="btnReloadPoints" class="btn">โหลดใหม่</button>
       </div>
+      <button id="btnAddPoint" class="btn point-add-btn" type="button">เพิ่มจุดติดตั้ง</button>
 
       <div class="filter-row" id="pointFilterRow">
         <button class="filter-chip active" data-filter="all">ทั้งหมด</button>
@@ -488,7 +517,7 @@
 
     <section id="pointFormPage" class="hidden">
       <div class="form-card">
-        <h2 class="form-title">จัดการจุดติดตั้ง</h2>
+        <h2 id="pointFormTitle" class="form-title">จัดการจุดติดตั้ง</h2>
 
         <div class="label">หมายเลขจุดติดตั้ง</div>
         <input id="pointFormCode" class="search" style="margin-bottom:14px;" placeholder="เช่น P-001">
@@ -532,6 +561,11 @@
           <button id="btnBackPointForm" class="btn secondary" type="button">กลับ</button>
           <button id="btnSavePointForm" class="btn" type="button">บันทึกข้อมูล</button>
           <button id="btnReplaceAsset" class="btn warning full" type="button">เปลี่ยนถังใหม่</button>
+        </div>
+
+        <div class="asset-history">
+          <h3 class="asset-history-title">ประวัติถังย้อนหลัง</h3>
+          <div id="pointAssetHistoryList" class="asset-history-list"></div>
         </div>
       </div>
     </section>
