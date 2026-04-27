@@ -1728,7 +1728,7 @@ async function createPointWithAsset() {
   btnSavePointForm.textContent = 'กำลังบันทึก...';
 
   const pointPayload = {
-    point_code: pointFormCodeEl.value.trim(),
+    point_code: formatPointCode(pointFormCodeEl.value),
     location: pointFormLocationEl.value.trim(),
     building: pointFormBuildingEl.value.trim(),
     hospital_zone: pointFormHospitalZoneEl.value.trim(),
@@ -2094,6 +2094,16 @@ bindEvent(navUsers, 'click', async () => {
   await loadUsersData();
 }, 'navUsers');
 
+function formatPointCode(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+
+  const number = parseInt(digits, 10);
+  if (Number.isNaN(number)) return '';
+
+  return `P-${String(number).padStart(3, '0')}`;
+}
+
 bindEvent(pointSearchInput, 'input', applyPointFilters, 'pointSearchInput');
 bindEvent(btnReloadPoints, 'click', loadPointsData, 'btnReloadPoints');
 bindEvent(btnExportPointsCsv, 'click', exportPointsCsv, 'btnExportPointsCsv');
@@ -2107,6 +2117,11 @@ bindEvent(btnReloadUsers, 'click', loadUsersData, 'btnReloadUsers');
 bindEvent(btnAddUser, 'click', openNewUserForm, 'btnAddUser');
 bindEvent(btnBackUserForm, 'click', showUsersPage, 'btnBackUserForm');
 bindEvent(btnSaveUserForm, 'click', saveUserForm, 'btnSaveUserForm');
+
+bindEvent(pointFormCodeEl, 'input', () => {
+  const formatted = formatPointCode(pointFormCodeEl.value);
+  pointFormCodeEl.value = formatted;
+}, 'pointFormCodeInputFormat');
 
 document.querySelectorAll('#filterRow .filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {
