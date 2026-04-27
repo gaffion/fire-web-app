@@ -934,6 +934,10 @@ async function savePointForm() {
     note: pointFormAssetNoteEl.value.trim()
   };
 
+  console.log('savePointForm currentPointRow =', currentPointRow);
+  console.log('savePointForm pointPayload =', pointPayload);
+  console.log('savePointForm assetPayload =', assetPayload);
+
   if (!pointPayload.point_code || !pointPayload.location || !pointPayload.building || !pointPayload.hospital_zone) {
     btnSavePointForm.disabled = false;
     btnSavePointForm.textContent = 'บันทึกข้อมูล';
@@ -941,10 +945,35 @@ async function savePointForm() {
     return;
   }
 
-  const { error: pointError } = await supabaseClient
+  const { data: duplicatePoints, error: duplicateError } = await supabaseClient
+    .from('points')
+    .select('id, point_code')
+    .eq('point_code', pointPayload.point_code);
+
+  if (duplicateError) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('ตรวจสอบหมายเลขจุดติดตั้งไม่สำเร็จ: ' + duplicateError.message);
+    return;
+  }
+
+  const duplicatePoint = (duplicatePoints || []).find(point =>
+    String(point.id) !== String(currentPointRow.point_id)
+  );
+
+  if (duplicatePoint) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('หมายเลขจุดติดตั้งนี้ถูกใช้แล้ว');
+    return;
+  }
+
+  const { data: updatedPoint, error: pointError } = await supabaseClient
     .from('points')
     .update(pointPayload)
-    .eq('id', currentPointRow.point_id);
+    .eq('id', currentPointRow.point_id)
+    .select('id, point_code, location, building, hospital_zone, note')
+    .maybeSingle();
 
   if (pointError) {
     btnSavePointForm.disabled = false;
@@ -953,19 +982,51 @@ async function savePointForm() {
     return;
   }
 
-  if (currentPointRow.asset_id) {
-    const { error: assetError } = await supabaseClient
-      .from('assets')
-      .update(assetPayload)
-      .eq('id', currentPointRow.asset_id);
-
-    if (assetError) {
-      btnSavePointForm.disabled = false;
-      btnSavePointForm.textContent = 'บันทึกข้อมูล';
-      alert('บันทึกข้อมูลถังไม่สำเร็จ: ' + assetError.message);
-      return;
-    }
+  if (!updatedPoint) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('ไม่สามารถอัปเดตข้อมูลจุดติดตั้งได้ อาจติด policy หรือไม่พบแถวข้อมูล');
+    return;
   }
+
+  console.log('updatedPoint =', updatedPoint);
+
+  if (pointError) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('บันทึกข้อมูลจุดติดตั้งไม่สำเร็จ: ' + pointError.message);
+    return;
+  }
+
+  if (!updatedPoint) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('ไม่พบข้อมูลจุดติดตั้งที่ต้องการอัปเดต');
+    return;
+  }
+
+if (currentPointRow.asset_id) {
+  const { data: updatedAsset, error: assetError } = await supabaseClient
+    .from('assets')
+    .update(assetPayload)
+    .eq('id', currentPointRow.asset_id)
+    .select('id, tank_color, asset_status, expiry_date, note')
+    .maybeSingle();
+
+  if (assetError) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('บันทึกข้อมูลถังไม่สำเร็จ: ' + assetError.message);
+    return;
+  }
+
+  if (!updatedAsset) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('ไม่สามารถอัปเดตข้อมูลถังได้ อาจติด policy หรือไม่พบแถวข้อมูล');
+    return;
+  }
+}
 
   btnSavePointForm.disabled = false;
   btnSavePointForm.textContent = 'บันทึกข้อมูล';
