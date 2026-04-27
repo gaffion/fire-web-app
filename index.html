@@ -7,193 +7,354 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
   <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #f8fafc;
-      color: #0f172a;
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --line: #dbe3ef;
+      --line-strong: #cbd5e1;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --accent-quiet: #eff6ff;
+      --danger: #dc2626;
+      --danger-soft: #fee2e2;
+      --success: #16a34a;
+      --success-soft: #dcfce7;
+      --warning: #d97706;
+      --warning-soft: #fef3c7;
+      --radius: 8px;
+      --control-radius: 10px;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
     }
-    .app {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 18px 14px 100px;
+
+    * {
       box-sizing: border-box;
     }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      letter-spacing: 0;
+    }
+
+    .hidden { display: none !important; }
+
+    .app {
+      width: 100%;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 18px 14px 108px;
+    }
+
     .login-page {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 18px 14px;
-      box-sizing: border-box;
     }
+
+    .login-card,
+    .form-card,
+    .summary-card,
+    .inspection-card,
+    .empty,
+    .app-user-bar {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
     .login-card {
       width: 100%;
       max-width: 420px;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 18px;
-      padding: 18px;
-      box-sizing: border-box;
+      padding: 22px;
+      box-shadow: var(--shadow);
     }
+
+    .login-title,
+    .title {
+      margin: 0;
+      color: var(--text);
+      font-weight: 850;
+      line-height: 1.15;
+    }
+
     .login-title {
-      font-size: 24px;
-      font-weight: 800;
-      margin: 0 0 6px;
+      font-size: 26px;
     }
-    .login-subtitle {
-      margin: 0 0 16px;
-      color: #64748b;
+
+    .title {
+      font-size: 25px;
+    }
+
+    .login-subtitle,
+    .subtitle {
+      margin: 7px 0 18px;
+      color: var(--muted);
       font-size: 14px;
+      line-height: 1.45;
     }
+
     .app-user-bar {
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 10px 12px;
-      margin-bottom: 14px;
+      padding: 12px;
+      margin-bottom: 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 12px;
     }
+
     .current-user {
       font-size: 14px;
-      font-weight: 700;
-      color: #1f2937;
+      font-weight: 800;
+      color: #1e293b;
       min-width: 0;
     }
+
     .current-role {
       display: block;
-      margin-top: 2px;
+      margin-top: 3px;
       font-size: 12px;
       font-weight: 700;
-      color: #64748b;
-    }
-    .hidden { display: none !important; }
-
-    .title {
-      font-size: 24px;
-      font-weight: 800;
-      margin: 0;
-    }
-    .subtitle {
-      margin: 6px 0 18px;
-      color: #64748b;
-      font-size: 14px;
+      color: var(--muted);
     }
 
     .summary-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 10px;
-      margin-bottom: 16px;
+      gap: 12px;
+      margin-bottom: 18px;
     }
+
     .summary-card {
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 18px;
-      padding: 14px 16px;
+      padding: 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
+      overflow: hidden;
     }
+
+    .summary-card.checked {
+      border-color: #bfdbfe;
+    }
+
+    .summary-card.unchecked {
+      border-color: #fecaca;
+    }
+
+    .summary-card.issues {
+      border-color: #fde68a;
+    }
+
     .summary-left {
       display: flex;
       align-items: center;
       gap: 12px;
       min-width: 0;
     }
+
     .summary-icon {
       width: 42px;
       height: 42px;
-      border-radius: 14px;
+      border-radius: var(--radius);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 20px;
       flex-shrink: 0;
+      background: var(--accent-quiet);
+      color: var(--accent);
     }
+
+    .summary-card.checked .summary-icon,
+    .summary-card.checked .summary-value,
+    .summary-card.checked .summary-label {
+      color: var(--accent);
+    }
+
+    .summary-card.checked .summary-icon {
+      background: var(--accent-soft);
+    }
+
+    .summary-card.unchecked .summary-icon,
+    .summary-card.unchecked .summary-value,
+    .summary-card.unchecked .summary-label {
+      color: var(--danger);
+    }
+
+    .summary-card.unchecked .summary-icon {
+      background: var(--danger-soft);
+    }
+
+    .summary-card.issues .summary-icon,
+    .summary-card.issues .summary-value,
+    .summary-card.issues .summary-label {
+      color: var(--warning);
+    }
+
+    .summary-card.issues .summary-icon {
+      background: var(--warning-soft);
+    }
+
     .summary-label {
-      font-size: 17px;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-    .summary-value {
-      font-size: 32px;
+      font-size: 14px;
       font-weight: 800;
+      line-height: 1.3;
+      color: #334155;
+    }
+
+    .summary-value {
+      font-size: 34px;
+      font-weight: 900;
+      line-height: 1;
       flex-shrink: 0;
+      color: #172554;
     }
 
     .toolbar {
       display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-bottom: 14px;
     }
+
+    .toolbar .search {
+      flex: 1 1 100%;
+    }
+
+    .toolbar .btn {
+      flex: 1 1 0;
+      min-width: 118px;
+    }
+
     .point-add-btn {
       width: 100%;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
+
+    .search,
+    .textarea {
+      width: 100%;
+      border-radius: var(--control-radius);
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
     .search {
       flex: 1;
-      height: 44px;
-      border-radius: 12px;
-      border: 1px solid #cbd5e1;
+      height: 46px;
       padding: 0 14px;
-      font-size: 15px;
-      background: white;
-      box-sizing: border-box;
     }
+
+    .textarea {
+      min-height: 98px;
+      padding: 12px 14px;
+      line-height: 1.45;
+      resize: vertical;
+    }
+
+    .search:focus,
+    .textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
+    .form-card .search,
+    .form-card .textarea,
+    .login-card .search {
+      margin-bottom: 14px;
+    }
+
     .btn {
-      height: 44px;
-      padding: 0 14px;
-      border: none;
-      border-radius: 12px;
-      background: #2563eb;
+      min-height: 44px;
+      padding: 0 15px;
+      border: 1px solid transparent;
+      border-radius: var(--control-radius);
+      background: var(--accent);
       color: white;
-      font-weight: 700;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 800;
       cursor: pointer;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.16);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
+
+    .btn.full-width {
+      width: 100%;
+    }
+
+    .btn:active,
+    .inspection-action-btn:active,
+    .nav-btn:active,
+    .filter-chip:active {
+      transform: translateY(1px);
+    }
+
     .btn.secondary {
-      background: #e2e8f0;
+      background: #eef2f7;
       color: #1f2937;
+      border-color: #e2e8f0;
+      box-shadow: none;
     }
+
     .btn.warning {
-      background: #f97316;
+      background: var(--warning);
+      box-shadow: 0 8px 18px rgba(217, 119, 6, 0.16);
     }
 
     .filter-row {
       display: flex;
       gap: 8px;
       overflow-x: auto;
-      margin-bottom: 14px;
-      padding-bottom: 2px;
+      margin: 2px -14px 14px;
+      padding: 0 14px 3px;
+      scrollbar-width: none;
     }
+
     .filter-row::-webkit-scrollbar { display: none; }
+
     .filter-chip {
-      height: 38px;
+      min-height: 38px;
       padding: 0 14px;
       border-radius: 999px;
-      border: 1px solid #cbd5e1;
-      background: #fff;
+      border: 1px solid var(--line);
+      background: var(--surface);
       color: #475569;
+      font: inherit;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       white-space: nowrap;
       cursor: pointer;
       flex-shrink: 0;
     }
+
     .filter-chip.active {
-      background: #2563eb;
-      color: #fff;
-      border-color: #2563eb;
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
     }
 
     .status {
-      font-size: 14px;
-      color: #64748b;
+      font-size: 13px;
+      color: var(--muted);
       margin-bottom: 12px;
+      line-height: 1.4;
     }
+
     .error {
       color: #b91c1c;
       font-size: 14px;
@@ -206,257 +367,363 @@
       flex-direction: column;
       gap: 10px;
     }
+
     .inspection-card {
       display: flex;
-      align-items: center;
+      align-items: stretch;
       justify-content: space-between;
       gap: 10px;
-      border-radius: 18px;
-      border: 1px solid #e2e8f0;
       padding: 12px;
-      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
     }
+
+    .inspection-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--accent);
+    }
+
     .inspection-card.red {
-      background: #fee2e2;
-      border-color: #fca5a5;
+      background: #fffafa;
+      border-color: #fecaca;
     }
+
+    .inspection-card.red::before {
+      background: var(--danger);
+    }
+
     .inspection-card.green {
-      background: #dcfce7;
-      border-color: #86efac;
+      background: #fbfefc;
+      border-color: #bbf7d0;
     }
+
+    .inspection-card.green::before {
+      background: var(--success);
+    }
+
+    .inspection-card.issue-card {
+      background: var(--surface);
+      border-color: var(--line);
+    }
+
+    .inspection-card.issue-card::before {
+      background: var(--warning);
+    }
+
     .inspection-left {
       flex: 1;
       min-width: 0;
+      padding-left: 4px;
     }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
     .inspection-code {
       font-size: 18px;
-      font-weight: 800;
-      line-height: 1.1;
+      font-weight: 900;
+      line-height: 1.15;
       margin: 0;
+      color: #0f172a;
     }
+
     .inspection-location {
-      margin-top: 8px;
+      margin-top: 6px;
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 750;
+      line-height: 1.35;
       color: #1f2937;
     }
+
     .inspection-meta {
       margin-top: 4px;
       font-size: 12px;
+      line-height: 1.35;
       color: #475569;
     }
+
     .inspection-sub {
-      margin-top: 4px;
-      font-size: 11px;
-      color: #64748b;
+      margin-top: 5px;
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--muted);
     }
+
     .inspection-right {
-      width: 92px;
+      width: 86px;
       flex-shrink: 0;
       display: flex;
-      align-items: center;
+      align-items: stretch;
     }
+
     .inspection-action-btn {
       width: 100%;
-      min-height: 82px;
-      border-radius: 18px;
-      border: none;
-      font-size: 14px;
-      font-weight: 800;
+      min-height: 70px;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 850;
       line-height: 1.25;
       text-align: center;
-      padding: 6px 4px;
+      padding: 8px 4px;
       color: white;
       cursor: pointer;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
     }
-    .inspection-action-btn.red { background: #ef4444; }
-    .inspection-action-btn.green { background: #22c55e; }
+
+    .inspection-action-btn.red { background: var(--danger); }
+    .inspection-action-btn.green { background: var(--success); }
+
     .inspection-action-btn.edit {
-      background: #e2e8f0;
-      color: #1f2937;
+      background: var(--accent-quiet);
+      color: var(--accent);
+      border-color: #bfdbfe;
+      box-shadow: none;
     }
 
     .empty {
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 18px;
+      padding: 22px 16px;
       text-align: center;
-      color: #64748b;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
     }
 
     .form-card {
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 18px;
-      padding: 16px;
-      margin-bottom: 12px;
-    }
-    .form-title {
-      font-size: 20px;
-      font-weight: 800;
-      margin: 0 0 14px;
-    }
-    .info-box {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 12px;
+      padding: 18px;
       margin-bottom: 14px;
     }
-    .info-row {
-      margin-bottom: 6px;
-      font-size: 14px;
+
+    .form-title {
+      font-size: 21px;
+      font-weight: 900;
+      line-height: 1.2;
+      margin: 0 0 16px;
     }
+
+    .form-section-divider {
+      border: none;
+      border-top: 1px solid var(--line);
+      margin: 20px 0 16px;
+    }
+
+    .info-box {
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 13px;
+      margin-bottom: 16px;
+    }
+
+    .info-row {
+      margin-bottom: 7px;
+      font-size: 14px;
+      line-height: 1.45;
+      color: #334155;
+    }
+
+    .info-row strong {
+      color: #0f172a;
+    }
+
     .info-row:last-child { margin-bottom: 0; }
 
     .label {
       font-size: 12px;
-      color: #64748b;
-      font-weight: 700;
-      margin-bottom: 6px;
+      color: #475569;
+      font-weight: 850;
+      margin: 0 0 6px;
     }
+
     .check-item {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
       padding: 12px;
       margin-bottom: 10px;
     }
+
     .check-name {
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 800;
+      line-height: 1.35;
       margin-bottom: 10px;
+      color: #1e293b;
     }
+
     .segment {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
+
     .segment button {
-      height: 42px;
-      border-radius: 12px;
-      border: 1px solid #cbd5e1;
-      background: white;
-      font-weight: 700;
+      min-height: 42px;
+      border-radius: var(--control-radius);
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      color: #334155;
+      font: inherit;
+      font-weight: 800;
       cursor: pointer;
     }
+
     .segment button.active.pass {
-      background: #22c55e;
+      background: var(--success);
       color: white;
-      border-color: #22c55e;
+      border-color: var(--success);
     }
+
     .segment button.active.fail {
-      background: #ef4444;
+      background: var(--danger);
       color: white;
-      border-color: #ef4444;
+      border-color: var(--danger);
     }
-    .textarea {
-      width: 100%;
-      min-height: 90px;
-      border-radius: 14px;
-      border: 1px solid #cbd5e1;
-      padding: 12px;
-      font-size: 14px;
-      box-sizing: border-box;
-      resize: vertical;
-    }
+
     .form-actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 16px;
+      margin-top: 18px;
     }
+
     .form-actions .full {
       grid-column: 1 / -1;
     }
+
     .asset-history {
-      margin-top: 18px;
-      padding-top: 16px;
-      border-top: 1px solid #e2e8f0;
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
     }
+
     .asset-history-title {
       font-size: 16px;
-      font-weight: 800;
-      margin: 0 0 10px;
+      font-weight: 900;
+      margin: 0 0 12px;
     }
+
     .asset-history-list {
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
+
     .asset-history-card {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
       padding: 12px;
     }
+
     .asset-history-card .info-row {
       font-size: 13px;
     }
 
     .bottom-nav {
       position: fixed;
-      left: 0;
-      right: 0;
+      left: 50%;
+      right: auto;
       bottom: 0;
-      background: white;
-      border-top: 1px solid #e2e8f0;
+      width: 100%;
+      max-width: 820px;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.96);
+      border-top: 1px solid var(--line);
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-      box-sizing: border-box;
-      max-width: 760px;
-      margin: 0 auto;
+      grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+      gap: 7px;
+      padding: 9px 10px calc(9px + env(safe-area-inset-bottom));
+      box-shadow: 0 -10px 28px rgba(15, 23, 42, 0.08);
     }
+
     .nav-btn {
-      height: 46px;
-      border: none;
-      border-radius: 14px;
-      background: #e2e8f0;
-      color: #1f2937;
-      font-weight: 800;
+      min-height: 48px;
+      border: 1px solid transparent;
+      border-radius: var(--control-radius);
+      background: transparent;
+      color: #475569;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 850;
       cursor: pointer;
     }
+
     .nav-btn.active {
-      background: #2563eb;
-      color: white;
+      background: var(--accent-quiet);
+      color: var(--accent);
+      border-color: #bfdbfe;
     }
 
-	    .toast {
-	      position: fixed;
-	      left: 50%;
-	      transform: translateX(-50%);
-	      bottom: 80px;
-      background: #16a34a;
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 84px;
+      width: calc(100% - 28px);
+      max-width: 420px;
+      background: var(--success);
       color: white;
       padding: 12px 16px;
-      border-radius: 14px;
+      border-radius: var(--radius);
       font-size: 14px;
-	      font-weight: 700;
-	      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-	      z-index: 9999;
-	    }
+      font-weight: 800;
+      text-align: center;
+      box-shadow: var(--shadow);
+      z-index: 9999;
+    }
 
-	    .issue-badge {
-	      display: inline-flex;
-	      align-items: center;
+    .issue-badge {
+      display: inline-flex;
+      align-items: center;
       padding: 5px 10px;
       border-radius: 999px;
+      border: 1px solid currentColor;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 850;
       white-space: nowrap;
-      background: rgba(255,255,255,0.75);
+      background: rgba(255, 255, 255, 0.82);
     }
 
     .issue-badge.pending {
-      color: #b45309;
+      color: var(--warning);
     }
 
-	    .issue-badge.fixed {
-	      color: #166534;
-	    }
+    .issue-badge.fixed {
+      color: var(--success);
+    }
+
+    @media (min-width: 560px) {
+      .app {
+        padding: 24px 18px 116px;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .toolbar {
+        flex-wrap: nowrap;
+      }
+
+      .toolbar .search {
+        flex: 1 1 auto;
+      }
+
+      .toolbar .btn {
+        flex: 0 0 auto;
+      }
+    }
 	  </style>
 </head>
 <body>
@@ -466,13 +733,13 @@
       <p class="login-subtitle">เข้าสู่ระบบเพื่อใช้งาน</p>
 
       <div class="label">ชื่อผู้ใช้</div>
-      <input id="loginUsername" class="search" style="width:100%;margin-bottom:12px;" autocomplete="username">
+      <input id="loginUsername" class="search" autocomplete="username">
 
       <div class="label">รหัสผ่าน</div>
-      <input id="loginPassword" type="password" class="search" style="width:100%;margin-bottom:12px;" autocomplete="current-password">
+      <input id="loginPassword" type="password" class="search" autocomplete="current-password">
 
       <div id="loginError" class="error"></div>
-      <button id="btnLogin" class="btn" style="width:100%;" type="button">เข้าสู่ระบบ</button>
+      <button id="btnLogin" class="btn full-width" type="button">เข้าสู่ระบบ</button>
     </div>
   </section>
 
@@ -490,36 +757,36 @@
       <p class="subtitle">ภาพรวมการตรวจถังดับเพลิง</p>
 
       <div class="summary-grid">
-        <div class="summary-card">
+        <div class="summary-card total">
           <div class="summary-left">
-            <div class="summary-icon" style="background:#e2e8f0;">📍</div>
+            <div class="summary-icon">📍</div>
             <div class="summary-label">จุดติดตั้งทั้งหมด</div>
           </div>
           <div id="totalCount" class="summary-value">0</div>
         </div>
 
-        <div class="summary-card">
+        <div class="summary-card checked">
           <div class="summary-left">
-            <div class="summary-icon" style="background:#dbeafe;">✅</div>
-            <div class="summary-label" style="color:#2563eb;">ตรวจแล้ว</div>
+            <div class="summary-icon">✅</div>
+            <div class="summary-label">ตรวจแล้ว</div>
           </div>
-          <div id="checkedCount" class="summary-value" style="color:#2563eb;">0</div>
+          <div id="checkedCount" class="summary-value">0</div>
         </div>
 
-        <div class="summary-card">
+        <div class="summary-card unchecked">
           <div class="summary-left">
-            <div class="summary-icon" style="background:#fee2e2;">⏳</div>
-            <div class="summary-label" style="color:#dc2626;">ยังไม่ตรวจ</div>
+            <div class="summary-icon">⏳</div>
+            <div class="summary-label">ยังไม่ตรวจ</div>
           </div>
-          <div id="uncheckedCount" class="summary-value" style="color:#dc2626;">0</div>
+          <div id="uncheckedCount" class="summary-value">0</div>
         </div>
 
-        <div class="summary-card">
+        <div class="summary-card issues">
           <div class="summary-left">
-            <div class="summary-icon" style="background:#fef3c7;">⚠️</div>
-            <div class="summary-label" style="color:#b45309;">พบปัญหา</div>
+            <div class="summary-icon">⚠️</div>
+            <div class="summary-label">พบปัญหา</div>
           </div>
-          <div id="issueCount" class="summary-value" style="color:#b45309;">0</div>
+          <div id="issueCount" class="summary-value">0</div>
         </div>
       </div>
     </section>
@@ -576,6 +843,7 @@
       <div class="toolbar">
         <input id="pointSearchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร">
         <button id="btnReloadPoints" class="btn">โหลดใหม่</button>
+        <button id="btnExportPointsCsv" class="btn" type="button">Export CSV</button>
       </div>
       <button id="btnAddPoint" class="btn point-add-btn" type="button">เพิ่มจุดติดตั้ง</button>
 
@@ -597,30 +865,30 @@
         <h2 id="pointFormTitle" class="form-title">จัดการจุดติดตั้ง</h2>
 
         <div class="label">หมายเลขจุดติดตั้ง</div>
-        <input id="pointFormCode" class="search" style="margin-bottom:14px;" placeholder="เช่น P-001">
+        <input id="pointFormCode" class="search" placeholder="เช่น P-001">
 
         <div class="label">พิกัด</div>
-        <input id="pointFormLocation" class="search" style="margin-bottom:14px;" placeholder="ระบุพิกัด">
+        <input id="pointFormLocation" class="search" placeholder="ระบุพิกัด">
 
         <div class="label">อาคาร</div>
-        <input id="pointFormBuilding" class="search" style="margin-bottom:14px;" placeholder="ระบุอาคาร">
+        <input id="pointFormBuilding" class="search" placeholder="ระบุอาคาร">
 
         <div class="label">เขต</div>
-        <input id="pointFormHospitalZone" class="search" style="margin-bottom:14px;" placeholder="เช่น รพ.หนองหาน 1">
+        <input id="pointFormHospitalZone" class="search" placeholder="เช่น รพ.หนองหาน 1">
 
         <div class="label">หมายเหตุจุดติดตั้ง</div>
         <textarea id="pointFormNote" class="textarea" placeholder="หมายเหตุเพิ่มเติม"></textarea>
 
-        <hr style="border:none;border-top:1px solid #e2e8f0;margin:18px 0;">
+        <hr class="form-section-divider">
 
         <div class="label">สีถัง</div>
-        <select id="pointFormTankColor" class="search" style="margin-bottom:14px;">
+        <select id="pointFormTankColor" class="search">
           <option value="red">ถังสีแดง</option>
           <option value="green">ถังสีเขียว</option>
         </select>
 
         <div class="label">สถานะถัง</div>
-        <select id="pointFormAssetStatus" class="search" style="margin-bottom:14px;">
+        <select id="pointFormAssetStatus" class="search">
           <option value="active">พร้อมใช้งาน</option>
           <option value="damaged">ชำรุด</option>
           <option value="not_ready">ไม่พร้อมใช้</option>
@@ -629,7 +897,7 @@
         </select>
 
         <div class="label">วันหมดอายุ</div>
-        <input id="pointFormExpiryDate" type="date" class="search" style="margin-bottom:14px;">
+        <input id="pointFormExpiryDate" type="date" class="search">
 
         <div class="label">หมายเหตุถัง</div>
         <textarea id="pointFormAssetNote" class="textarea" placeholder="หมายเหตุของถัง"></textarea>
@@ -683,7 +951,7 @@
         </div>
 
         <div class="label">สถานะการแก้ไข</div>
-        <select id="issueFixStatusInput" class="search" style="margin-bottom:14px;">
+        <select id="issueFixStatusInput" class="search">
           <option value="pending">รอดำเนินการ</option>
           <option value="fixed">ซ่อมแล้ว</option>
         </select>
@@ -718,23 +986,23 @@
         <h2 class="form-title">จัดการผู้ใช้</h2>
 
         <div class="label">Username</div>
-        <input id="userFormUsername" class="search" style="margin-bottom:14px;" autocomplete="off">
+        <input id="userFormUsername" class="search" autocomplete="off">
 
         <div class="label">Password</div>
-        <input id="userFormPassword" type="password" class="search" style="margin-bottom:14px;" autocomplete="new-password">
+        <input id="userFormPassword" type="password" class="search" autocomplete="new-password">
 
         <div class="label">ชื่อ-สกุล</div>
-        <input id="userFormFullname" class="search" style="margin-bottom:14px;">
+        <input id="userFormFullname" class="search">
 
         <div class="label">Role</div>
-        <select id="userFormRole" class="search" style="margin-bottom:14px;">
+        <select id="userFormRole" class="search">
           <option value="inspector">ผู้ตรวจสอบ</option>
           <option value="supervisor">ผู้ควบคุม</option>
           <option value="admin">ผู้ดูแลระบบ</option>
         </select>
 
         <div class="label">Status</div>
-        <select id="userFormStatus" class="search" style="margin-bottom:14px;">
+        <select id="userFormStatus" class="search">
           <option value="active">ใช้งาน</option>
           <option value="inactive">ระงับการใช้งาน</option>
         </select>
@@ -747,7 +1015,7 @@
     </section>
   </div>
 
-  <div class="bottom-nav" id="bottomNav" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
+  <div class="bottom-nav" id="bottomNav">
     <button id="navDashboard" class="nav-btn active" type="button">หน้าหลัก</button>
     <button id="navInspection" class="nav-btn" type="button">ตรวจสอบ</button>
     <button id="navIssues" class="nav-btn" type="button">ปัญหา</button>

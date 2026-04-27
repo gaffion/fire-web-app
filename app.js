@@ -16,6 +16,7 @@ let activeIssueFilter = 'pending';
 let currentIssueRow = null;
 let pendingIssueCount = 0;
 let allPoints = [];
+let filteredPointRows = [];
 let activePointFilter = 'all';
 let currentPointRow = null;
 let isCreatingPoint = false;
@@ -107,6 +108,7 @@ const pointErrorEl = document.getElementById('pointError');
 const pointListEl = document.getElementById('pointList');
 const pointSearchInput = document.getElementById('pointSearchInput');
 const btnReloadPoints = document.getElementById('btnReloadPoints');
+const btnExportPointsCsv = document.getElementById('btnExportPointsCsv');
 const btnAddPoint = document.getElementById('btnAddPoint');
 
 const pointFormPage = document.getElementById('pointFormPage');
@@ -555,6 +557,16 @@ function getTankColorFullLabel(tankColor) {
   return tankColor || '-';
 }
 
+function getAssetStatusLabel(status) {
+  const statusKey = String(status || '').toLowerCase();
+  if (statusKey === 'active') return 'พร้อมใช้งาน';
+  if (statusKey === 'damaged') return 'ชำรุด';
+  if (statusKey === 'not_ready') return 'ไม่พร้อมใช้';
+  if (statusKey === 'disposed') return 'จำหน่าย';
+  if (statusKey === 'replaced') return 'เปลี่ยนถังแล้ว';
+  return status || '-';
+}
+
 function formatDateTime(value) {
   if (!value) return '';
   const d = new Date(value);
@@ -630,10 +642,10 @@ function renderIssueList(rows) {
     const badgeText = row.fix_status === 'fixed' ? 'ซ่อมแล้ว' : 'รอดำเนินการ';
 
     const card = document.createElement('div');
-    card.className = 'inspection-card red';
+    card.className = 'inspection-card issue-card';
     card.innerHTML = `
       <div class="inspection-left">
-        <div class="card-head" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <div class="card-head">
           <div class="inspection-code">${escapeHtml(row.point_code || '-')}</div>
           <span class="issue-badge ${badgeClass}">${badgeText}</span>
         </div>
@@ -1213,6 +1225,7 @@ async function loadInspectionData() {
       ...row,
       checked: !!check,
       checked_at: check?.checked_at || '',
+      checked_by_name: check?.checked_by_name || '',
       overall_result: check?.overall_result || '',
       note: check?.note || '',
       checkValues
@@ -1315,7 +1328,47 @@ function applyPointFilters() {
     return true;
   });
 
+  filteredPointRows = filtered;
   renderPointsList(filtered);
+}
+
+function exportPointsCsv() {
+  if (!filteredPointRows.length) {
+    alert('ไม่มีข้อมูลสำหรับ export');
+    return;
+  }
+
+  const headers = [
+    'หมายเลขจุดติดตั้ง',
+    'พิกัด',
+    'อาคาร',
+    'เขต',
+    'สีถัง',
+    'สถานะถัง',
+    'วันหมดอายุ',
+    'รอบติดตั้ง',
+    'หมายเหตุจุดติดตั้ง',
+    'หมายเหตุถัง'
+  ];
+
+  const rows = filteredPointRows.map(row => [
+    row.point_code || '',
+    row.location || '',
+    row.building || '',
+    row.hospital_zone || '',
+    getTankColorFullLabel(row.tank_color),
+    getAssetStatusLabel(row.asset_status),
+    row.expiry_date || '',
+    row.install_round || '',
+    row.point_note || '',
+    row.asset_note || ''
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(toCsvValue).join(','))
+    .join('\r\n');
+
+  downloadCsv(`points-report-${getCurrentMonthKey()}.csv`, csvContent);
 }
 
 function resetUserForm() {
@@ -2032,6 +2085,7 @@ bindEvent(navUsers, 'click', async () => {
 
 bindEvent(pointSearchInput, 'input', applyPointFilters, 'pointSearchInput');
 bindEvent(btnReloadPoints, 'click', loadPointsData, 'btnReloadPoints');
+bindEvent(btnExportPointsCsv, 'click', exportPointsCsv, 'btnExportPointsCsv');
 bindEvent(btnAddPoint, 'click', openNewPointForm, 'btnAddPoint');
 
 bindEvent(btnBackPointForm, 'click', showPointsPage, 'btnBackPointForm');
