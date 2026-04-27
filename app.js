@@ -13,6 +13,9 @@ let allIssues = [];
 let activeIssueFilter = 'pending';
 let currentIssueRow = null;
 let pendingIssueCount = 0;
+let allPoints = [];
+let activePointFilter = 'all';
+let currentPointRow = null;
 
 const CHECK_FIELDS = [
   { key: 'pressure_gauge', label: '1) มาตรวัดความดัน' },
@@ -75,6 +78,31 @@ const issueFixNoteInput = document.getElementById('issueFixNoteInput');
 const btnBackIssue = document.getElementById('btnBackIssue');
 const btnSaveIssue = document.getElementById('btnSaveIssue');
 
+const pointsPage = document.getElementById('pointsPage');
+const navPoints = document.getElementById('navPoints');
+
+const pointStatusEl = document.getElementById('pointStatus');
+const pointErrorEl = document.getElementById('pointError');
+const pointListEl = document.getElementById('pointList');
+const pointSearchInput = document.getElementById('pointSearchInput');
+const btnReloadPoints = document.getElementById('btnReloadPoints');
+
+const pointFormPage = document.getElementById('pointFormPage');
+
+const pointFormCodeEl = document.getElementById('pointFormCode');
+const pointFormLocationEl = document.getElementById('pointFormLocation');
+const pointFormBuildingEl = document.getElementById('pointFormBuilding');
+const pointFormHospitalZoneEl = document.getElementById('pointFormHospitalZone');
+const pointFormNoteEl = document.getElementById('pointFormNote');
+
+const pointFormTankColorEl = document.getElementById('pointFormTankColor');
+const pointFormAssetStatusEl = document.getElementById('pointFormAssetStatus');
+const pointFormExpiryDateEl = document.getElementById('pointFormExpiryDate');
+const pointFormAssetNoteEl = document.getElementById('pointFormAssetNote');
+
+const btnBackPointForm = document.getElementById('btnBackPointForm');
+const btnSavePointForm = document.getElementById('btnSavePointForm');
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -106,14 +134,17 @@ function setActiveNav(page) {
   navDashboard.classList.toggle('active', page === 'dashboard');
   navInspection.classList.toggle('active', page === 'inspection');
   navIssues.classList.toggle('active', page === 'issues');
+  navPoints.classList.toggle('active', page === 'points');
 }
 
 function showDashboardPage() {
   dashboardPage.classList.remove('hidden');
   inspectionPage.classList.add('hidden');
   issuesPage.classList.add('hidden');
+  pointsPage.classList.add('hidden');
   formPage.classList.add('hidden');
   issueFormPage.classList.add('hidden');
+  pointFormPage.classList.add('hidden');
   bottomNav.classList.remove('hidden');
   setActiveNav('dashboard');
 }
@@ -122,8 +153,10 @@ function showInspectionPage() {
   dashboardPage.classList.add('hidden');
   inspectionPage.classList.remove('hidden');
   issuesPage.classList.add('hidden');
+  pointsPage.classList.add('hidden');
   formPage.classList.add('hidden');
   issueFormPage.classList.add('hidden');
+  pointFormPage.classList.add('hidden');
   bottomNav.classList.remove('hidden');
   setActiveNav('inspection');
 }
@@ -131,19 +164,35 @@ function showInspectionPage() {
 function showIssuesPage() {
   dashboardPage.classList.add('hidden');
   inspectionPage.classList.add('hidden');
+  pointsPage.classList.add('hidden');
   formPage.classList.add('hidden');
   issueFormPage.classList.add('hidden');
   issuesPage.classList.remove('hidden');
+  pointFormPage.classList.add('hidden');
   bottomNav.classList.remove('hidden');
   setActiveNav('issues');
+}
+
+function showPointsPage() {
+  dashboardPage.classList.add('hidden');
+  inspectionPage.classList.add('hidden');
+  issuesPage.classList.add('hidden');
+  pointsPage.classList.remove('hidden');
+  formPage.classList.add('hidden');
+  issueFormPage.classList.add('hidden');
+  pointFormPage.classList.add('hidden');
+  bottomNav.classList.remove('hidden');
+  setActiveNav('points');
 }
 
 function showIssueFormPage() {
   dashboardPage.classList.add('hidden');
   inspectionPage.classList.add('hidden');
-  formPage.classList.add('hidden');
   issuesPage.classList.add('hidden');
+  pointsPage.classList.add('hidden');
+  formPage.classList.add('hidden');
   issueFormPage.classList.remove('hidden');
+  pointFormPage.classList.add('hidden');
   bottomNav.classList.add('hidden');
 }
 
@@ -151,8 +200,10 @@ function showFormPage() {
   dashboardPage.classList.add('hidden');
   inspectionPage.classList.add('hidden');
   issuesPage.classList.add('hidden');
+  pointsPage.classList.add('hidden');
   issueFormPage.classList.add('hidden');
   formPage.classList.remove('hidden');
+  pointFormPage.classList.add('hidden');
   bottomNav.classList.add('hidden');
 }
 
@@ -734,6 +785,197 @@ async function loadInspectionData() {
   applyFilters();
 }
 
+async function loadPointsData() {
+  pointStatusEl.textContent = 'กำลังโหลดข้อมูล...';
+  pointErrorEl.textContent = '';
+  pointListEl.innerHTML = '';
+
+  const { data, error } = await supabaseClient
+    .from('v_point_current_asset')
+    .select('*')
+    .order('point_code', { ascending: true });
+
+  if (error) {
+    pointStatusEl.textContent = 'โหลดข้อมูลไม่สำเร็จ';
+    pointErrorEl.textContent = error.message;
+    return;
+  }
+
+  allPoints = data || [];
+  pointStatusEl.textContent = `โหลดข้อมูลสำเร็จ ${allPoints.length} รายการ`;
+  applyPointFilters();
+}
+
+function renderPointsList(rows) {
+  pointListEl.innerHTML = '';
+
+  if (!rows.length) {
+    pointListEl.innerHTML = `<div class="empty">ไม่พบข้อมูลจุดติดตั้ง</div>`;
+    return;
+  }
+
+  rows.forEach(row => {
+    const card = document.createElement('div');
+    card.className = `inspection-card ${getCardColorClass(row.tank_color)}`;
+
+    const tankColorText = row.tank_color === 'green' ? 'ถังสีเขียว' : 'ถังสีแดง';
+
+    card.innerHTML = `
+      <div class="inspection-left">
+        <div class="inspection-code">${escapeHtml(row.point_code || '-')}</div>
+        <div class="inspection-location">${escapeHtml(row.location || '-')}</div>
+        <div class="inspection-meta">${escapeHtml(row.building || '-')} · ${escapeHtml(row.hospital_zone || '-')}</div>
+        <div class="inspection-sub">สีถัง: ${escapeHtml(tankColorText)}</div>
+        <div class="inspection-sub">สถานะถัง: ${escapeHtml(row.asset_status || '-')}</div>
+        <div class="inspection-sub">วันหมดอายุ: ${escapeHtml(row.expiry_date || 'ไม่ระบุ')}</div>
+      </div>
+
+      <div class="inspection-right">
+        <button class="inspection-action-btn edit" type="button">จัดการ<br>จุด</button>
+      </div>
+    `;
+
+    card.querySelector('button').addEventListener('click', () => {
+      openPointForm(row);
+    });
+
+    pointListEl.appendChild(card);
+  });
+}
+
+function applyPointFilters() {
+  const q = pointSearchInput.value.trim().toLowerCase();
+
+  const filtered = allPoints.filter(row => {
+    const matchKeyword =
+      String(row.point_code || '').toLowerCase().includes(q) ||
+      String(row.location || '').toLowerCase().includes(q) ||
+      String(row.building || '').toLowerCase().includes(q) ||
+      String(row.hospital_zone || '').toLowerCase().includes(q);
+
+    if (!matchKeyword) return false;
+
+    if (activePointFilter === 'red') {
+      return String(row.tank_color || '').toLowerCase() === 'red';
+    }
+
+    if (activePointFilter === 'green') {
+      return String(row.tank_color || '').toLowerCase() === 'green';
+    }
+
+    if (activePointFilter === 'active') {
+      return String(row.asset_status || '').toLowerCase() === 'active';
+    }
+
+    if (activePointFilter === 'problem') {
+      const status = String(row.asset_status || '').toLowerCase();
+      return status === 'damaged' || status === 'not_ready';
+    }
+
+    return true;
+  });
+
+  renderPointsList(filtered);
+}
+
+function showPointFormPage() {
+  dashboardPage.classList.add('hidden');
+  inspectionPage.classList.add('hidden');
+  issuesPage.classList.add('hidden');
+  pointsPage.classList.add('hidden');
+  formPage.classList.add('hidden');
+  issueFormPage.classList.add('hidden');
+  pointFormPage.classList.remove('hidden');
+  bottomNav.classList.add('hidden');
+}
+
+function formatDateForInput(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+function openPointForm(row) {
+  currentPointRow = row;
+
+  pointFormCodeEl.value = row.point_code || '';
+  pointFormLocationEl.value = row.location || '';
+  pointFormBuildingEl.value = row.building || '';
+  pointFormHospitalZoneEl.value = row.hospital_zone || '';
+  pointFormNoteEl.value = row.point_note || '';
+
+  pointFormTankColorEl.value = row.tank_color || 'red';
+  pointFormAssetStatusEl.value = row.asset_status || 'active';
+  pointFormExpiryDateEl.value = formatDateForInput(row.expiry_date);
+  pointFormAssetNoteEl.value = row.asset_note || '';
+
+  showPointFormPage();
+}
+
+async function savePointForm() {
+  if (!currentPointRow) return;
+
+  btnSavePointForm.disabled = true;
+  btnSavePointForm.textContent = 'กำลังบันทึก...';
+
+  const pointPayload = {
+    point_code: pointFormCodeEl.value.trim(),
+    location: pointFormLocationEl.value.trim(),
+    building: pointFormBuildingEl.value.trim(),
+    hospital_zone: pointFormHospitalZoneEl.value.trim(),
+    note: pointFormNoteEl.value.trim()
+  };
+
+  const assetPayload = {
+    tank_color: pointFormTankColorEl.value,
+    asset_status: pointFormAssetStatusEl.value,
+    expiry_date: pointFormExpiryDateEl.value || null,
+    note: pointFormAssetNoteEl.value.trim()
+  };
+
+  if (!pointPayload.point_code || !pointPayload.location || !pointPayload.building || !pointPayload.hospital_zone) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('กรุณากรอกข้อมูลจุดติดตั้งให้ครบ');
+    return;
+  }
+
+  const { error: pointError } = await supabaseClient
+    .from('points')
+    .update(pointPayload)
+    .eq('id', currentPointRow.point_id);
+
+  if (pointError) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('บันทึกข้อมูลจุดติดตั้งไม่สำเร็จ: ' + pointError.message);
+    return;
+  }
+
+  if (currentPointRow.asset_id) {
+    const { error: assetError } = await supabaseClient
+      .from('assets')
+      .update(assetPayload)
+      .eq('id', currentPointRow.asset_id);
+
+    if (assetError) {
+      btnSavePointForm.disabled = false;
+      btnSavePointForm.textContent = 'บันทึกข้อมูล';
+      alert('บันทึกข้อมูลถังไม่สำเร็จ: ' + assetError.message);
+      return;
+    }
+  }
+
+  btnSavePointForm.disabled = false;
+  btnSavePointForm.textContent = 'บันทึกข้อมูล';
+
+  showToast('บันทึกข้อมูลจุดติดตั้งสำเร็จ');
+  await loadPointsData();
+  await loadInspectionData();
+  showPointsPage();
+}
+
 bindEvent(searchInput, 'input', applyFilters, 'searchInput');
 bindEvent(btnReload, 'click', loadInspectionData, 'btnReload');
 bindEvent(btnBack, 'click', showInspectionPage, 'btnBack');
@@ -753,6 +995,17 @@ bindEvent(issueSearchInput, 'input', applyIssueFilters, 'issueSearchInput');
 bindEvent(btnReloadIssues, 'click', loadIssuesData, 'btnReloadIssues');
 bindEvent(btnBackIssue, 'click', showIssuesPage, 'btnBackIssue');
 bindEvent(btnSaveIssue, 'click', saveIssueForm, 'btnSaveIssue');
+
+bindEvent(navPoints, 'click', async () => {
+  showPointsPage();
+  await loadPointsData();
+}, 'navPoints');
+
+bindEvent(pointSearchInput, 'input', applyPointFilters, 'pointSearchInput');
+bindEvent(btnReloadPoints, 'click', loadPointsData, 'btnReloadPoints');
+
+bindEvent(btnBackPointForm, 'click', showPointsPage, 'btnBackPointForm');
+bindEvent(btnSavePointForm, 'click', savePointForm, 'btnSavePointForm');
 
 document.querySelectorAll('#filterRow .filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {

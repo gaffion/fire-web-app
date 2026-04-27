@@ -458,6 +458,77 @@
       <div id="issueList" class="list"></div>
     </section>
 
+    <section id="pointsPage" class="hidden">
+      <h1 class="title">จุดติดตั้ง</h1>
+      <p class="subtitle">รายการจุดติดตั้งถังดับเพลิงทั้งหมด</p>
+
+      <div class="toolbar">
+        <input id="pointSearchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร">
+        <button id="btnReloadPoints" class="btn">โหลดใหม่</button>
+      </div>
+
+      <div class="filter-row" id="pointFilterRow">
+        <button class="filter-chip active" data-filter="all">ทั้งหมด</button>
+        <button class="filter-chip" data-filter="red">ถังสีแดง</button>
+        <button class="filter-chip" data-filter="green">ถังสีเขียว</button>
+        <button class="filter-chip" data-filter="active">พร้อมใช้งาน</button>
+        <button class="filter-chip" data-filter="problem">ชำรุด/ไม่พร้อมใช้</button>
+      </div>
+
+      <div id="pointStatus" class="status">กำลังเตรียมระบบ...</div>
+      <div id="pointError" class="error"></div>
+      <div id="pointList" class="list"></div>
+    </section>
+
+    <section id="pointFormPage" class="hidden">
+      <div class="form-card">
+        <h2 class="form-title">จัดการจุดติดตั้ง</h2>
+
+        <div class="label">หมายเลขจุดติดตั้ง</div>
+        <input id="pointFormCode" class="search" style="margin-bottom:14px;" placeholder="เช่น P-001">
+
+        <div class="label">พิกัด</div>
+        <input id="pointFormLocation" class="search" style="margin-bottom:14px;" placeholder="ระบุพิกัด">
+
+        <div class="label">อาคาร</div>
+        <input id="pointFormBuilding" class="search" style="margin-bottom:14px;" placeholder="ระบุอาคาร">
+
+        <div class="label">เขต</div>
+        <input id="pointFormHospitalZone" class="search" style="margin-bottom:14px;" placeholder="เช่น รพ.หนองหาน 1">
+
+        <div class="label">หมายเหตุจุดติดตั้ง</div>
+        <textarea id="pointFormNote" class="textarea" placeholder="หมายเหตุเพิ่มเติม"></textarea>
+
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:18px 0;">
+
+        <div class="label">สีถัง</div>
+        <select id="pointFormTankColor" class="search" style="margin-bottom:14px;">
+          <option value="red">ถังสีแดง</option>
+          <option value="green">ถังสีเขียว</option>
+        </select>
+
+        <div class="label">สถานะถัง</div>
+        <select id="pointFormAssetStatus" class="search" style="margin-bottom:14px;">
+          <option value="active">พร้อมใช้งาน</option>
+          <option value="damaged">ชำรุด</option>
+          <option value="not_ready">ไม่พร้อมใช้</option>
+          <option value="disposed">จำหน่าย</option>
+          <option value="replaced">เปลี่ยนถังแล้ว</option>
+        </select>
+
+        <div class="label">วันหมดอายุ</div>
+        <input id="pointFormExpiryDate" type="date" class="search" style="margin-bottom:14px;">
+
+        <div class="label">หมายเหตุถัง</div>
+        <textarea id="pointFormAssetNote" class="textarea" placeholder="หมายเหตุของถัง"></textarea>
+
+        <div class="form-actions">
+          <button id="btnBackPointForm" class="btn secondary" type="button">กลับ</button>
+          <button id="btnSavePointForm" class="btn" type="button">บันทึกข้อมูล</button>
+        </div>
+      </div>
+    </section>
+
     <section id="formPage" class="hidden">
       <div class="form-card">
         <h2 class="form-title">บันทึกผลการตรวจ</h2>
@@ -510,10 +581,11 @@
     </section>
   </div>
 
-  <div class="bottom-nav" id="bottomNav" style="grid-template-columns: 1fr 1fr 1fr;">
+  <div class="bottom-nav" id="bottomNav" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
     <button id="navDashboard" class="nav-btn active" type="button">หน้าหลัก</button>
     <button id="navInspection" class="nav-btn" type="button">ตรวจสอบ</button>
     <button id="navIssues" class="nav-btn" type="button">ปัญหา</button>
+    <button id="navPoints" class="nav-btn" type="button">จุดติดตั้ง</button>
   </div>
 
   <div id="toast" class="toast hidden"></div>
