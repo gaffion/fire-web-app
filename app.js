@@ -254,12 +254,10 @@ function renderIssueList(rows) {
       <div class="inspection-left">
         <div class="card-head">
           <div class="inspection-code">${escapeHtml(row.point_code || '-')}</div>
-          <span class="issue-badge ${badgeClass}">${badgeText}</span>
-        </div>
-        <div class="inspection-location">${escapeHtml(row.location || '-')}</div>
-        <div class="inspection-meta">${escapeHtml(row.building || '-')} · ${escapeHtml(row.hospital_zone || '-')}</div>
-        <div class="inspection-sub">ปัญหา: ${escapeHtml(row.problem_summary || '-')}</div>
-        <div class="inspection-sub">บันทึกล่าสุด: ${escapeHtml(formatDateTime(row.updated_at || row.created_at || ''))}</div>
+          <div class="inspection-location">${escapeHtml(row.location || '-')}</div>
+          <div class="inspection-meta">${escapeHtml(row.building || '-')} · ${escapeHtml(row.hospital_zone || '-')}</div>
+          <div class="inspection-sub">ปัญหา: ${escapeHtml(row.problem_summary || '-')}</div>
+          <div class="inspection-sub">บันทึกล่าสุด: ${escapeHtml(formatDateTime(row.updated_at || row.created_at || ''))}</div>
       </div>
 
       <div class="inspection-right">
