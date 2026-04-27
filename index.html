@@ -531,6 +531,7 @@
       <div class="toolbar">
         <input id="searchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร">
         <button id="btnReload" class="btn">โหลดใหม่</button>
+        <button id="btnExportInspectionCsv" class="btn" type="button">Export CSV</button>
       </div>
 
       <div class="filter-row" id="filterRow">
@@ -695,6 +696,54 @@
         </div>
       </div>
     </section>
+
+    <section id="usersPage" class="hidden">
+      <h1 class="title">ผู้ใช้งานระบบ</h1>
+      <p class="subtitle">จัดการบัญชีผู้ใช้งาน</p>
+
+      <div class="toolbar">
+        <input id="userSearchInput" class="search" placeholder="ค้นหา username, ชื่อ, role, status">
+        <button id="btnReloadUsers" class="btn">โหลดใหม่</button>
+      </div>
+      <button id="btnAddUser" class="btn point-add-btn" type="button">เพิ่มผู้ใช้</button>
+
+      <div id="userStatus" class="status">กำลังเตรียมระบบ...</div>
+      <div id="userError" class="error"></div>
+      <div id="userList" class="list"></div>
+    </section>
+
+    <section id="userFormPage" class="hidden">
+      <div class="form-card">
+        <h2 class="form-title">จัดการผู้ใช้</h2>
+
+        <div class="label">Username</div>
+        <input id="userFormUsername" class="search" style="margin-bottom:14px;" autocomplete="off">
+
+        <div class="label">Password</div>
+        <input id="userFormPassword" type="password" class="search" style="margin-bottom:14px;" autocomplete="new-password">
+
+        <div class="label">ชื่อ-สกุล</div>
+        <input id="userFormFullname" class="search" style="margin-bottom:14px;">
+
+        <div class="label">Role</div>
+        <select id="userFormRole" class="search" style="margin-bottom:14px;">
+          <option value="inspector">ผู้ตรวจสอบ</option>
+          <option value="supervisor">ผู้ควบคุม</option>
+          <option value="admin">ผู้ดูแลระบบ</option>
+        </select>
+
+        <div class="label">Status</div>
+        <select id="userFormStatus" class="search" style="margin-bottom:14px;">
+          <option value="active">ใช้งาน</option>
+          <option value="inactive">ระงับการใช้งาน</option>
+        </select>
+
+        <div class="form-actions">
+          <button id="btnBackUserForm" class="btn secondary" type="button">กลับ</button>
+          <button id="btnSaveUserForm" class="btn" type="button">บันทึกข้อมูล</button>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="bottom-nav" id="bottomNav" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
@@ -702,6 +751,7 @@
     <button id="navInspection" class="nav-btn" type="button">ตรวจสอบ</button>
     <button id="navIssues" class="nav-btn" type="button">ปัญหา</button>
     <button id="navPoints" class="nav-btn" type="button">จุดติดตั้ง</button>
+    <button id="navUsers" class="nav-btn hidden" type="button">ผู้ใช้</button>
   </div>
 
   <div id="toast" class="toast hidden"></div>

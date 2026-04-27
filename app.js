@@ -7,6 +7,7 @@ const supabaseClient = createClient(
 );
 
 let allRows = [];
+let filteredInspectionRows = [];
 let activeFilter = 'all';
 let currentFormRow = null;
 let allIssues = [];
@@ -18,6 +19,9 @@ let activePointFilter = 'all';
 let currentPointRow = null;
 let isCreatingPoint = false;
 let currentUser = null;
+let allUsers = [];
+let currentUserRow = null;
+let isCreatingUser = false;
 
 const SESSION_KEY = 'fireAppSession';
 
@@ -48,6 +52,7 @@ const btnLogout = document.getElementById('btnLogout');
 
 const navDashboard = document.getElementById('navDashboard');
 const navInspection = document.getElementById('navInspection');
+const navUsers = document.getElementById('navUsers');
 const bottomNav = document.getElementById('bottomNav');
 
 const statusEl = document.getElementById('status');
@@ -55,6 +60,7 @@ const errorEl = document.getElementById('error');
 const listEl = document.getElementById('list');
 const searchInput = document.getElementById('searchInput');
 const btnReload = document.getElementById('btnReload');
+const btnExportInspectionCsv = document.getElementById('btnExportInspectionCsv');
 
 const totalCountEl = document.getElementById('totalCount');
 const checkedCountEl = document.getElementById('checkedCount');
@@ -119,6 +125,22 @@ const pointAssetHistoryListEl = document.getElementById('pointAssetHistoryList')
 const btnBackPointForm = document.getElementById('btnBackPointForm');
 const btnSavePointForm = document.getElementById('btnSavePointForm');
 const btnReplaceAsset = document.getElementById('btnReplaceAsset');
+
+const usersPage = document.getElementById('usersPage');
+const userFormPage = document.getElementById('userFormPage');
+const userSearchInput = document.getElementById('userSearchInput');
+const btnReloadUsers = document.getElementById('btnReloadUsers');
+const btnAddUser = document.getElementById('btnAddUser');
+const userStatusEl = document.getElementById('userStatus');
+const userErrorEl = document.getElementById('userError');
+const userListEl = document.getElementById('userList');
+const userFormUsernameEl = document.getElementById('userFormUsername');
+const userFormPasswordEl = document.getElementById('userFormPassword');
+const userFormFullnameEl = document.getElementById('userFormFullname');
+const userFormRoleEl = document.getElementById('userFormRole');
+const userFormStatusEl = document.getElementById('userFormStatus');
+const btnBackUserForm = document.getElementById('btnBackUserForm');
+const btnSaveUserForm = document.getElementById('btnSaveUserForm');
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -227,12 +249,23 @@ function canSaveCheck() {
   return isAdmin() || isSupervisor() || isInspector();
 }
 
+function canManageUsers() {
+  return isAdmin();
+}
+
 function getRoleLabel(role) {
   const roleKey = String(role || '').toLowerCase();
   if (roleKey === 'admin') return 'ผู้ดูแลระบบ';
   if (roleKey === 'supervisor') return 'ผู้ควบคุม';
   if (roleKey === 'inspector') return 'ผู้ตรวจสอบ';
   return '-';
+}
+
+function getUserStatusLabel(status) {
+  const statusKey = String(status || '').toLowerCase();
+  if (statusKey === 'active') return 'ใช้งาน';
+  if (statusKey === 'inactive') return 'ระงับการใช้งาน';
+  return status || '-';
 }
 
 function requireCurrentUser() {
@@ -271,11 +304,21 @@ function setIssueFormEditable(canEdit) {
 function updateRoleUI() {
   const canManagePoints = canEditPoints();
 
+  navUsers.classList.toggle('hidden', !canManageUsers());
+  bottomNav.style.gridTemplateColumns = canManageUsers()
+    ? '1fr 1fr 1fr 1fr 1fr'
+    : '1fr 1fr 1fr 1fr';
   btnAddPoint.classList.toggle('hidden', !canCreatePoint());
   btnSavePointForm.disabled = !canManagePoints;
   btnReplaceAsset.classList.toggle('hidden', !canReplaceAsset() || isCreatingPoint);
   btnReplaceAsset.disabled = !canReplaceAsset() || isCreatingPoint;
   btnSaveIssue.disabled = !canResolveIssue();
+
+  if (!canManageUsers() && (usersPage && userFormPage) && (
+    !usersPage.classList.contains('hidden') || !userFormPage.classList.contains('hidden')
+  )) {
+    showDashboardPage();
+  }
 }
 
 function showLoginPage() {
@@ -382,10 +425,13 @@ function logout() {
   currentFormRow = null;
   currentIssueRow = null;
   currentPointRow = null;
+  currentUserRow = null;
   isCreatingPoint = false;
+  isCreatingUser = false;
   allRows = [];
   allIssues = [];
   allPoints = [];
+  allUsers = [];
   pendingIssueCount = 0;
   updateRoleUI();
   showLoginPage();
@@ -396,6 +442,7 @@ function setActiveNav(page) {
   navInspection.classList.toggle('active', page === 'inspection');
   navIssues.classList.toggle('active', page === 'issues');
   navPoints.classList.toggle('active', page === 'points');
+  navUsers.classList.toggle('active', page === 'users');
 }
 
 function showDashboardPage() {
@@ -406,6 +453,8 @@ function showDashboardPage() {
   formPage.classList.add('hidden');
   issueFormPage.classList.add('hidden');
   pointFormPage.classList.add('hidden');
+  usersPage.classList.add('hidden');
+  userFormPage.classList.add('hidden');
   bottomNav.classList.remove('hidden');
   setActiveNav('dashboard');
 }
@@ -418,6 +467,8 @@ function showInspectionPage() {
   formPage.classList.add('hidden');
   issueFormPage.classList.add('hidden');
   pointFormPage.classList.add('hidden');
+  usersPage.classList.add('hidden');
+  userFormPage.classList.add('hidden');
   bottomNav.classList.remove('hidden');
   setActiveNav('inspection');
 }
@@ -430,6 +481,8 @@ function showIssuesPage() {
   issueFormPage.classList.add('hidden');
   issuesPage.classList.remove('hidden');
   pointFormPage.classList.add('hidden');
+  usersPage.classList.add('hidden');
+  userFormPage.classList.add('hidden');
   bottomNav.classList.remove('hidden');
   setActiveNav('issues');
 }
@@ -442,6 +495,8 @@ function showPointsPage() {
   formPage.classList.add('hidden');
   issueFormPage.classList.add('hidden');
   pointFormPage.classList.add('hidden');
+  usersPage.classList.add('hidden');
+  userFormPage.classList.add('hidden');
   bottomNav.classList.remove('hidden');
   setActiveNav('points');
 }
@@ -454,6 +509,8 @@ function showIssueFormPage() {
   formPage.classList.add('hidden');
   issueFormPage.classList.remove('hidden');
   pointFormPage.classList.add('hidden');
+  usersPage.classList.add('hidden');
+  userFormPage.classList.add('hidden');
   bottomNav.classList.add('hidden');
 }
 
@@ -465,6 +522,8 @@ function showFormPage() {
   issueFormPage.classList.add('hidden');
   formPage.classList.remove('hidden');
   pointFormPage.classList.add('hidden');
+  usersPage.classList.add('hidden');
+  userFormPage.classList.add('hidden');
   bottomNav.classList.add('hidden');
 }
 
@@ -748,7 +807,66 @@ function applyFilters() {
     return true;
   });
 
+  filteredInspectionRows = filtered;
   renderList(filtered);
+}
+
+function toCsvValue(value) {
+  const text = String(value ?? '');
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function downloadCsv(filename, csvContent) {
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function exportInspectionCsv() {
+  if (!filteredInspectionRows.length) {
+    alert('ไม่มีข้อมูลสำหรับ export');
+    return;
+  }
+
+  const headers = [
+    'หมายเลขจุดติดตั้ง',
+    'พิกัด',
+    'อาคาร',
+    'เขต',
+    'สีถัง',
+    'สถานะถัง',
+    'วันหมดอายุ',
+    'วันที่ตรวจ',
+    'ผู้ตรวจ',
+    'ผลการตรวจ',
+    'หมายเหตุ'
+  ];
+
+  const rows = filteredInspectionRows.map(row => [
+    row.point_code || '',
+    row.location || '',
+    row.building || '',
+    row.hospital_zone || '',
+    getTankColorFullLabel(row.tank_color),
+    row.asset_status || '',
+    row.expiry_date || '',
+    row.checked_at ? formatDateTime(row.checked_at) : '',
+    row.checked_by_name || '',
+    row.checked ? (row.overall_result || '') : 'ยังไม่ตรวจ',
+    row.note || ''
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(toCsvValue).join(','))
+    .join('\r\n');
+
+  downloadCsv(`inspection-report-${getCurrentMonthKey()}.csv`, csvContent);
 }
 
 function buildCheckItems(values = {}) {
@@ -1149,6 +1267,204 @@ function applyPointFilters() {
   renderPointsList(filtered);
 }
 
+function resetUserForm() {
+  userFormUsernameEl.value = '';
+  userFormPasswordEl.value = '';
+  userFormFullnameEl.value = '';
+  userFormRoleEl.value = 'inspector';
+  userFormStatusEl.value = 'active';
+}
+
+function openNewUserForm() {
+  if (!requireRole(canManageUsers)) return;
+
+  isCreatingUser = true;
+  currentUserRow = null;
+  resetUserForm();
+  showUserFormPage();
+}
+
+function openUserForm(row) {
+  if (!requireRole(canManageUsers)) return;
+
+  isCreatingUser = false;
+  currentUserRow = row;
+  userFormUsernameEl.value = row.username || '';
+  userFormPasswordEl.value = '';
+  userFormFullnameEl.value = row.fullname || '';
+  userFormRoleEl.value = row.role || 'inspector';
+  userFormStatusEl.value = row.status || 'active';
+  showUserFormPage();
+}
+
+async function loadUsersData() {
+  if (!requireRole(canManageUsers)) return;
+
+  userStatusEl.textContent = 'กำลังโหลดข้อมูล...';
+  userErrorEl.textContent = '';
+  userListEl.innerHTML = '';
+
+  const { data, error } = await supabaseClient
+    .from('users')
+    .select('id, username, fullname, role, status')
+    .order('username', { ascending: true });
+
+  if (error) {
+    userStatusEl.textContent = 'โหลดข้อมูลไม่สำเร็จ';
+    userErrorEl.textContent = error.message;
+    return;
+  }
+
+  allUsers = data || [];
+  userStatusEl.textContent = `โหลดข้อมูลสำเร็จ ${allUsers.length} รายการ`;
+  applyUserFilters();
+}
+
+function renderUsersList(rows) {
+  userListEl.innerHTML = '';
+
+  if (!rows.length) {
+    userListEl.innerHTML = `<div class="empty">ไม่พบข้อมูลผู้ใช้</div>`;
+    return;
+  }
+
+  rows.forEach(row => {
+    const card = document.createElement('div');
+    card.className = 'inspection-card';
+
+    card.innerHTML = `
+      <div class="inspection-left">
+        <div class="inspection-code">${escapeHtml(row.username || '-')}</div>
+        <div class="inspection-location">${escapeHtml(row.fullname || '-')}</div>
+        <div class="inspection-meta">Role: ${escapeHtml(getRoleLabel(row.role))} · Status: ${escapeHtml(getUserStatusLabel(row.status))}</div>
+      </div>
+
+      <div class="inspection-right">
+        <button class="inspection-action-btn edit" type="button">จัดการ<br>ผู้ใช้</button>
+      </div>
+    `;
+
+    card.querySelector('button').addEventListener('click', () => openUserForm(row));
+    userListEl.appendChild(card);
+  });
+}
+
+function applyUserFilters() {
+  const q = userSearchInput.value.trim().toLowerCase();
+
+  const filtered = allUsers.filter(row => (
+    String(row.username || '').toLowerCase().includes(q) ||
+    String(row.fullname || '').toLowerCase().includes(q) ||
+    String(row.role || '').toLowerCase().includes(q) ||
+    String(row.status || '').toLowerCase().includes(q) ||
+    getRoleLabel(row.role).toLowerCase().includes(q) ||
+    getUserStatusLabel(row.status).toLowerCase().includes(q)
+  ));
+
+  renderUsersList(filtered);
+}
+
+async function saveUserForm() {
+  if (!requireRole(canManageUsers)) return;
+
+  btnSaveUserForm.disabled = true;
+  btnSaveUserForm.textContent = 'กำลังบันทึก...';
+
+  const username = userFormUsernameEl.value.trim();
+  const password = userFormPasswordEl.value;
+  const payload = {
+    username,
+    fullname: userFormFullnameEl.value.trim(),
+    role: userFormRoleEl.value,
+    status: userFormStatusEl.value
+  };
+
+  if (!payload.username || !payload.fullname || !payload.role || !payload.status || (isCreatingUser && !password)) {
+    btnSaveUserForm.disabled = false;
+    btnSaveUserForm.textContent = 'บันทึกข้อมูล';
+    alert('กรุณากรอกข้อมูลผู้ใช้ให้ครบ');
+    return;
+  }
+
+  const { data: duplicateUsers, error: duplicateError } = await supabaseClient
+    .from('users')
+    .select('id, username')
+    .eq('username', payload.username);
+
+  if (duplicateError) {
+    btnSaveUserForm.disabled = false;
+    btnSaveUserForm.textContent = 'บันทึกข้อมูล';
+    alert('ตรวจสอบ username ไม่สำเร็จ: ' + duplicateError.message);
+    return;
+  }
+
+  const duplicateUser = (duplicateUsers || []).find(user => (
+    isCreatingUser || String(user.id) !== String(currentUserRow?.id)
+  ));
+
+  if (duplicateUser) {
+    btnSaveUserForm.disabled = false;
+    btnSaveUserForm.textContent = 'บันทึกข้อมูล';
+    alert('username นี้ถูกใช้แล้ว');
+    return;
+  }
+
+  if (password) {
+    payload.password = password;
+  }
+
+  if (isCreatingUser) {
+    const { data: insertedUser, error: insertError } = await supabaseClient
+      .from('users')
+      .insert(payload)
+      .select('id')
+      .maybeSingle();
+
+    if (insertError) {
+      btnSaveUserForm.disabled = false;
+      btnSaveUserForm.textContent = 'บันทึกข้อมูล';
+      alert('เพิ่มข้อมูลผู้ใช้ไม่สำเร็จ: ' + insertError.message);
+      return;
+    }
+
+    if (!insertedUser) {
+      btnSaveUserForm.disabled = false;
+      btnSaveUserForm.textContent = 'บันทึกข้อมูล';
+      alert('ไม่สามารถเพิ่มข้อมูลผู้ใช้ได้ อาจติด policy หรือไม่พบแถวข้อมูล');
+      return;
+    }
+  } else {
+    const { data: updatedUser, error: updateError } = await supabaseClient
+      .from('users')
+      .update(payload)
+      .eq('id', currentUserRow.id)
+      .select('id')
+      .maybeSingle();
+
+    if (updateError) {
+      btnSaveUserForm.disabled = false;
+      btnSaveUserForm.textContent = 'บันทึกข้อมูล';
+      alert('บันทึกข้อมูลผู้ใช้ไม่สำเร็จ: ' + updateError.message);
+      return;
+    }
+
+    if (!updatedUser) {
+      btnSaveUserForm.disabled = false;
+      btnSaveUserForm.textContent = 'บันทึกข้อมูล';
+      alert('ไม่สามารถบันทึกข้อมูลผู้ใช้ได้ อาจติด policy หรือไม่พบแถวข้อมูล');
+      return;
+    }
+  }
+
+  btnSaveUserForm.disabled = false;
+  btnSaveUserForm.textContent = 'บันทึกข้อมูล';
+  isCreatingUser = false;
+
+  showToast('บันทึกข้อมูลผู้ใช้สำเร็จ');
+  await loadUsersData();
+  showUsersPage();
+}
+
 function showPointFormPage() {
   dashboardPage.classList.add('hidden');
   inspectionPage.classList.add('hidden');
@@ -1157,6 +1473,39 @@ function showPointFormPage() {
   formPage.classList.add('hidden');
   issueFormPage.classList.add('hidden');
   pointFormPage.classList.remove('hidden');
+  usersPage.classList.add('hidden');
+  userFormPage.classList.add('hidden');
+  bottomNav.classList.add('hidden');
+}
+
+function showUsersPage() {
+  if (!requireRole(canManageUsers)) return;
+
+  dashboardPage.classList.add('hidden');
+  inspectionPage.classList.add('hidden');
+  issuesPage.classList.add('hidden');
+  pointsPage.classList.add('hidden');
+  formPage.classList.add('hidden');
+  issueFormPage.classList.add('hidden');
+  pointFormPage.classList.add('hidden');
+  usersPage.classList.remove('hidden');
+  userFormPage.classList.add('hidden');
+  bottomNav.classList.remove('hidden');
+  setActiveNav('users');
+}
+
+function showUserFormPage() {
+  if (!requireRole(canManageUsers)) return;
+
+  dashboardPage.classList.add('hidden');
+  inspectionPage.classList.add('hidden');
+  issuesPage.classList.add('hidden');
+  pointsPage.classList.add('hidden');
+  formPage.classList.add('hidden');
+  issueFormPage.classList.add('hidden');
+  pointFormPage.classList.add('hidden');
+  usersPage.classList.add('hidden');
+  userFormPage.classList.remove('hidden');
   bottomNav.classList.add('hidden');
 }
 
@@ -1600,6 +1949,7 @@ bindEvent(loginPasswordEl, 'keydown', event => {
 }, 'loginPassword');
 bindEvent(btnLogout, 'click', logout, 'btnLogout');
 bindEvent(btnReload, 'click', loadInspectionData, 'btnReload');
+bindEvent(btnExportInspectionCsv, 'click', exportInspectionCsv, 'btnExportInspectionCsv');
 bindEvent(btnBack, 'click', showInspectionPage, 'btnBack');
 bindEvent(btnSaveCheck, 'click', saveCheck, 'btnSaveCheck');
 bindEvent(navDashboard, 'click', showDashboardPage, 'navDashboard');
@@ -1622,6 +1972,11 @@ bindEvent(navPoints, 'click', async () => {
   showPointsPage();
   await loadPointsData();
 }, 'navPoints');
+bindEvent(navUsers, 'click', async () => {
+  if (!requireRole(canManageUsers)) return;
+  showUsersPage();
+  await loadUsersData();
+}, 'navUsers');
 
 bindEvent(pointSearchInput, 'input', applyPointFilters, 'pointSearchInput');
 bindEvent(btnReloadPoints, 'click', loadPointsData, 'btnReloadPoints');
@@ -1630,6 +1985,11 @@ bindEvent(btnAddPoint, 'click', openNewPointForm, 'btnAddPoint');
 bindEvent(btnBackPointForm, 'click', showPointsPage, 'btnBackPointForm');
 bindEvent(btnSavePointForm, 'click', savePointForm, 'btnSavePointForm');
 bindEvent(btnReplaceAsset, 'click', replaceAssetForPoint, 'btnReplaceAsset');
+bindEvent(userSearchInput, 'input', applyUserFilters, 'userSearchInput');
+bindEvent(btnReloadUsers, 'click', loadUsersData, 'btnReloadUsers');
+bindEvent(btnAddUser, 'click', openNewUserForm, 'btnAddUser');
+bindEvent(btnBackUserForm, 'click', showUsersPage, 'btnBackUserForm');
+bindEvent(btnSaveUserForm, 'click', saveUserForm, 'btnSaveUserForm');
 
 document.querySelectorAll('#filterRow .filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {
