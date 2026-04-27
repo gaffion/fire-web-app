@@ -148,6 +148,32 @@ const btnSaveUserForm = document.getElementById('btnSaveUserForm');
 
 const btnPassAllChecks = document.getElementById('btnPassAllChecks');
 
+const pointFormBuildingOtherWrapEl = document.getElementById('pointFormBuildingOtherWrap');
+const pointFormBuildingOtherEl = document.getElementById('pointFormBuildingOther');
+
+const BUILDINGS_BY_ZONE = {
+  'รพ.หนองหาน 1': [
+    'อาคาร PCU',
+    'อาคารบริหาร 3 ชั้น',
+    'อาคารกายภาพบำบัด',
+    'อาคารแพทย์แผนไทย',
+    'แฟลตแพทย์ 3 ชั้น',
+    'แฟลตเจ้าหน้าที่',
+    'ไตเทียม',
+    'อาคารอื่นๆ...'
+  ],
+  'รพ.หนองหาน 2': [
+    'อาคารผู้ป่วยนอก-อุบัติเหตุฉุกเฉิน',
+    'อาคารผู้ป่วยใน 114 เตียง',
+    'อาคารโภชนาการ',
+    'อาคารคลังยา',
+    'อาคารซักฟอก-จ่ายกลาง',
+    'อาคารแสงตะวัน',
+    'โซนบ้านพักเจ้าหน้าที่',
+    'อาคารอื่นๆ...'
+  ]
+};
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -1682,6 +1708,9 @@ function resetPointForm() {
   pointFormAssetStatusEl.value = 'active';
   pointFormExpiryDateEl.value = '';
   pointFormAssetNoteEl.value = '';
+  if (pointFormHospitalZoneEl) pointFormHospitalZoneEl.value = '';
+  populateBuildingOptionsByZone('', '');
+  if (pointFormBuildingOtherEl) pointFormBuildingOtherEl.value = '';
 }
 
 function openNewPointForm() {
@@ -1708,8 +1737,8 @@ async function openPointForm(row) {
 
   pointFormCodeEl.value = row.point_code || '';
   pointFormLocationEl.value = row.location || '';
-  pointFormBuildingEl.value = row.building || '';
   pointFormHospitalZoneEl.value = row.hospital_zone || '';
+  populateBuildingOptionsByZone(row.hospital_zone || '', row.building || '');
   pointFormNoteEl.value = row.point_note || '';
 
   pointFormTankColorEl.value = row.tank_color || 'red';
@@ -1832,10 +1861,15 @@ async function savePointForm() {
   btnSavePointForm.disabled = true;
   btnSavePointForm.textContent = 'กำลังบันทึก...';
 
+  const resolvedBuilding =
+    pointFormBuildingEl.value === 'อาคารอื่นๆ...'
+      ? pointFormBuildingOtherEl.value.trim()
+      : pointFormBuildingEl.value.trim();
+
   const pointPayload = {
     point_code: pointFormCodeEl.value.trim(),
     location: pointFormLocationEl.value.trim(),
-    building: pointFormBuildingEl.value.trim(),
+    building: resolvedBuilding,
     hospital_zone: pointFormHospitalZoneEl.value.trim(),
     note: pointFormNoteEl.value.trim()
   };
@@ -1846,6 +1880,13 @@ async function savePointForm() {
     expiry_date: pointFormExpiryDateEl.value || null,
     note: pointFormAssetNoteEl.value.trim()
   };
+
+  if (pointFormBuildingEl.value === 'อาคารอื่นๆ...' && !pointFormBuildingOtherEl.value.trim()) {
+    btnSavePointForm.disabled = false;
+    btnSavePointForm.textContent = 'บันทึกข้อมูล';
+    alert('กรุณาระบุชื่ออาคาร');
+    return;
+  }
 
   if (!pointPayload.point_code || !pointPayload.location || !pointPayload.building || !pointPayload.hospital_zone) {
     btnSavePointForm.disabled = false;
@@ -1898,19 +1939,6 @@ async function savePointForm() {
     return;
   }
 
-  if (pointError) {
-    btnSavePointForm.disabled = false;
-    btnSavePointForm.textContent = 'บันทึกข้อมูล';
-    alert('บันทึกข้อมูลจุดติดตั้งไม่สำเร็จ: ' + pointError.message);
-    return;
-  }
-
-  if (!updatedPoint) {
-    btnSavePointForm.disabled = false;
-    btnSavePointForm.textContent = 'บันทึกข้อมูล';
-    alert('ไม่พบข้อมูลจุดติดตั้งที่ต้องการอัปเดต');
-    return;
-  }
 
 if (currentPointRow.asset_id) {
   const { data: updatedAsset, error: assetError } = await supabaseClient
@@ -2104,6 +2132,48 @@ function formatPointCode(value) {
   return `P-${String(number).padStart(3, '0')}`;
 }
 
+function populateBuildingOptionsByZone(zone, selectedBuilding = '') {
+  if (!pointFormBuildingEl) return;
+
+  const options = BUILDINGS_BY_ZONE[zone] || [];
+  pointFormBuildingEl.innerHTML =
+    `<option value="">เลือกอาคาร</option>` +
+    options.map(name => `<option value="${name}">${name}</option>`).join('');
+
+  if (selectedBuilding && options.includes(selectedBuilding)) {
+    pointFormBuildingEl.value = selectedBuilding;
+    pointFormBuildingOtherWrapEl?.classList.add('hidden');
+    if (pointFormBuildingOtherEl) pointFormBuildingOtherEl.value = '';
+    return;
+  }
+
+  if (selectedBuilding && !options.includes(selectedBuilding)) {
+    pointFormBuildingEl.value = 'อาคารอื่นๆ...';
+    pointFormBuildingOtherWrapEl?.classList.remove('hidden');
+    if (pointFormBuildingOtherEl) pointFormBuildingOtherEl.value = selectedBuilding;
+    return;
+  }
+
+  pointFormBuildingEl.value = '';
+  pointFormBuildingOtherWrapEl?.classList.add('hidden');
+  if (pointFormBuildingOtherEl) pointFormBuildingOtherEl.value = '';
+}
+
+function handleHospitalZoneChange() {
+  const zone = pointFormHospitalZoneEl.value;
+  populateBuildingOptionsByZone(zone, '');
+}
+
+function handleBuildingChange() {
+  const value = pointFormBuildingEl.value;
+  if (value === 'อาคารอื่นๆ...') {
+    pointFormBuildingOtherWrapEl?.classList.remove('hidden');
+  } else {
+    pointFormBuildingOtherWrapEl?.classList.add('hidden');
+    if (pointFormBuildingOtherEl) pointFormBuildingOtherEl.value = '';
+  }
+}
+
 bindEvent(pointSearchInput, 'input', applyPointFilters, 'pointSearchInput');
 bindEvent(btnReloadPoints, 'click', loadPointsData, 'btnReloadPoints');
 bindEvent(btnExportPointsCsv, 'click', exportPointsCsv, 'btnExportPointsCsv');
@@ -2122,6 +2192,9 @@ bindEvent(pointFormCodeEl, 'input', () => {
   const formatted = formatPointCode(pointFormCodeEl.value);
   pointFormCodeEl.value = formatted;
 }, 'pointFormCodeInputFormat');
+
+bindEvent(pointFormHospitalZoneEl, 'change', handleHospitalZoneChange, 'pointFormHospitalZoneChange');
+bindEvent(pointFormBuildingEl, 'change', handleBuildingChange, 'pointFormBuildingChange');
 
 document.querySelectorAll('#filterRow .filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {

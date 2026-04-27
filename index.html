@@ -1045,14 +1045,25 @@
         <div class="label">หมายเลขจุดติดตั้ง</div>
         <input id="pointFormCode" class="search" placeholder="เช่น P-001">
 
-        <div class="label">พิกัด</div>
-        <input id="pointFormLocation" class="search" placeholder="ระบุพิกัด">
+        <div class="label">เขต</div>
+        <select id="pointFormHospitalZone" class="search">
+          <option value="">เลือกเขต</option>
+          <option value="รพ.หนองหาน 1">รพ.หนองหาน 1</option>
+          <option value="รพ.หนองหาน 2">รพ.หนองหาน 2</option>
+        </select>
 
         <div class="label">อาคาร</div>
-        <input id="pointFormBuilding" class="search" placeholder="ระบุอาคาร">
+        <select id="pointFormBuilding" class="search">
+          <option value="">เลือกอาคาร</option>
+        </select>
 
-        <div class="label">เขต</div>
-        <input id="pointFormHospitalZone" class="search" placeholder="เช่น รพ.หนองหาน 1">
+        <div id="pointFormBuildingOtherWrap" class="hidden">
+          <div class="label">ระบุอาคารอื่น</div>
+          <input id="pointFormBuildingOther" class="search" placeholder="ระบุชื่ออาคาร">
+        </div>
+
+        <div class="label">พิกัด</div>
+        <input id="pointFormLocation" class="search" placeholder="ระบุพิกัด">
 
         <div class="label">หมายเหตุจุดติดตั้ง</div>
         <textarea id="pointFormNote" class="textarea" placeholder="หมายเหตุเพิ่มเติม"></textarea>
