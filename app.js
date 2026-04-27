@@ -43,6 +43,7 @@ const loginPasswordEl = document.getElementById('loginPassword');
 const btnLogin = document.getElementById('btnLogin');
 const loginErrorEl = document.getElementById('loginError');
 const currentUserNameEl = document.getElementById('currentUserName');
+const currentUserRoleEl = document.getElementById('currentUserRole');
 const btnLogout = document.getElementById('btnLogout');
 
 const navDashboard = document.getElementById('navDashboard');
@@ -174,6 +175,8 @@ function setCurrentUser(user) {
   currentUserNameEl.textContent = user
     ? `สวัสดี, ${user.fullname || user.username || '-'}`
     : 'สวัสดี, -';
+  currentUserRoleEl.textContent = user ? getRoleLabel(user.role) : '-';
+  updateRoleUI();
 }
 
 function getCurrentUser() {
@@ -188,11 +191,91 @@ function getCurrentFullname() {
   return getCurrentUser()?.fullname || getCurrentUser()?.username || 'ไม่ทราบชื่อผู้ใช้';
 }
 
+function getCurrentRole() {
+  return String(getCurrentUser()?.role || '').toLowerCase();
+}
+
+function isAdmin() {
+  return getCurrentRole() === 'admin';
+}
+
+function isSupervisor() {
+  return getCurrentRole() === 'supervisor';
+}
+
+function isInspector() {
+  return getCurrentRole() === 'inspector';
+}
+
+function canEditPoints() {
+  return isAdmin() || isSupervisor();
+}
+
+function canReplaceAsset() {
+  return isAdmin() || isSupervisor();
+}
+
+function canCreatePoint() {
+  return isAdmin() || isSupervisor();
+}
+
+function canResolveIssue() {
+  return isAdmin() || isSupervisor();
+}
+
+function canSaveCheck() {
+  return isAdmin() || isSupervisor() || isInspector();
+}
+
+function getRoleLabel(role) {
+  const roleKey = String(role || '').toLowerCase();
+  if (roleKey === 'admin') return 'ผู้ดูแลระบบ';
+  if (roleKey === 'supervisor') return 'ผู้ควบคุม';
+  if (roleKey === 'inspector') return 'ผู้ตรวจสอบ';
+  return '-';
+}
+
 function requireCurrentUser() {
   if (getCurrentUser()) return true;
   alert('กรุณาเข้าสู่ระบบใหม่');
   showLoginPage();
   return false;
+}
+
+function requireRole(checkFn, message = 'คุณไม่มีสิทธิ์ดำเนินการนี้') {
+  if (!requireCurrentUser()) return false;
+  if (checkFn()) return true;
+  alert(message);
+  return false;
+}
+
+function setPointFormEditable(canEdit) {
+  pointFormCodeEl.readOnly = !canEdit;
+  pointFormLocationEl.readOnly = !canEdit;
+  pointFormBuildingEl.readOnly = !canEdit;
+  pointFormHospitalZoneEl.readOnly = !canEdit;
+  pointFormNoteEl.readOnly = !canEdit;
+  pointFormTankColorEl.disabled = !canEdit;
+  pointFormAssetStatusEl.disabled = !canEdit;
+  pointFormExpiryDateEl.readOnly = !canEdit;
+  pointFormAssetNoteEl.readOnly = !canEdit;
+  btnSavePointForm.disabled = !canEdit;
+}
+
+function setIssueFormEditable(canEdit) {
+  issueFixStatusInput.disabled = !canEdit;
+  issueFixNoteInput.readOnly = !canEdit;
+  btnSaveIssue.disabled = !canEdit;
+}
+
+function updateRoleUI() {
+  const canManagePoints = canEditPoints();
+
+  btnAddPoint.classList.toggle('hidden', !canCreatePoint());
+  btnSavePointForm.disabled = !canManagePoints;
+  btnReplaceAsset.classList.toggle('hidden', !canReplaceAsset() || isCreatingPoint);
+  btnReplaceAsset.disabled = !canReplaceAsset() || isCreatingPoint;
+  btnSaveIssue.disabled = !canResolveIssue();
 }
 
 function showLoginPage() {
@@ -304,6 +387,7 @@ function logout() {
   allIssues = [];
   allPoints = [];
   pendingIssueCount = 0;
+  updateRoleUI();
   showLoginPage();
 }
 
@@ -537,13 +621,14 @@ function openIssueForm(row) {
   issueFormSummaryEl.textContent = row.problem_summary || '-';
   issueFixStatusInput.value = row.fix_status || 'pending';
   issueFixNoteInput.value = row.fix_note || '';
+  setIssueFormEditable(canResolveIssue());
 
   showIssueFormPage();
 }
 
 async function saveIssueForm() {
   if (!currentIssueRow) return;
-  if (!requireCurrentUser()) return;
+  if (!requireRole(canResolveIssue)) return;
 
   btnSaveIssue.disabled = true;
   btnSaveIssue.textContent = 'กำลังบันทึก...';
@@ -806,7 +891,7 @@ async function syncIssueForCheck({ checkId, point, overallResult, values }) {
 
 async function saveCheck() {
   if (!currentFormRow) return;
-  if (!requireCurrentUser()) return;
+  if (!requireRole(canSaveCheck)) return;
 
   const { values, incomplete } = getFormValues();
   if (incomplete) {
@@ -1146,12 +1231,15 @@ function resetPointForm() {
 }
 
 function openNewPointForm() {
+  if (!requireRole(canCreatePoint)) return;
+
   isCreatingPoint = true;
   currentPointRow = null;
   resetPointForm();
   pointFormTitleEl.textContent = 'เพิ่มจุดติดตั้ง';
   btnReplaceAsset.classList.add('hidden');
   btnReplaceAsset.disabled = true;
+  setPointFormEditable(true);
   renderPointAssetHistory([]);
   showPointFormPage();
 }
@@ -1160,8 +1248,9 @@ async function openPointForm(row) {
   isCreatingPoint = false;
   currentPointRow = row;
   pointFormTitleEl.textContent = 'จัดการจุดติดตั้ง';
-  btnReplaceAsset.classList.remove('hidden');
-  btnReplaceAsset.disabled = false;
+  setPointFormEditable(canEditPoints());
+  btnReplaceAsset.classList.toggle('hidden', !canReplaceAsset());
+  btnReplaceAsset.disabled = !canReplaceAsset();
 
   pointFormCodeEl.value = row.point_code || '';
   pointFormLocationEl.value = row.location || '';
@@ -1179,7 +1268,7 @@ async function openPointForm(row) {
 }
 
 async function createPointWithAsset() {
-  if (!requireCurrentUser()) return;
+  if (!requireRole(canCreatePoint)) return;
 
   btnSavePointForm.disabled = true;
   btnSavePointForm.textContent = 'กำลังบันทึก...';
@@ -1277,12 +1366,12 @@ async function createPointWithAsset() {
 }
 
 async function savePointForm() {
-  if (!requireCurrentUser()) return;
-
   if (isCreatingPoint) {
     await createPointWithAsset();
     return;
   }
+
+  if (!requireRole(canEditPoints)) return;
 
   if (!currentPointRow) return;
 
@@ -1402,7 +1491,7 @@ if (currentPointRow.asset_id) {
 }
 
 async function replaceAssetForPoint() {
-  if (!requireCurrentUser()) return;
+  if (!requireRole(canReplaceAsset)) return;
 
   if (!currentPointRow || !currentPointRow.point_id) {
     alert('ไม่พบข้อมูลจุดติดตั้งสำหรับเปลี่ยนถัง');

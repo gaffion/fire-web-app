@@ -63,6 +63,13 @@
       color: #1f2937;
       min-width: 0;
     }
+    .current-role {
+      display: block;
+      margin-top: 2px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+    }
     .hidden { display: none !important; }
 
     .title {
@@ -471,7 +478,10 @@
 
   <div id="appShell" class="app hidden">
     <div class="app-user-bar">
-      <span id="currentUserName" class="current-user">สวัสดี, -</span>
+      <span class="current-user">
+        <span id="currentUserName">สวัสดี, -</span>
+        <span id="currentUserRole" class="current-role">-</span>
+      </span>
       <button id="btnLogout" class="btn secondary" type="button">ออกจากระบบ</button>
     </div>
 
