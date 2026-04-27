@@ -12,6 +12,7 @@ let currentFormRow = null;
 let allIssues = [];
 let activeIssueFilter = 'pending';
 let currentIssueRow = null;
+let pendingIssueCount = 0;
 
 const CHECK_FIELDS = [
   { key: 'pressure_gauge', label: '1) มาตรวัดความดัน' },
@@ -196,7 +197,7 @@ function updateSummary(rows) {
   totalCountEl.textContent = rows.length;
   checkedCountEl.textContent = rows.filter(r => r.checked).length;
   uncheckedCountEl.textContent = rows.filter(r => !r.checked).length;
-  issueCountEl.textContent = rows.filter(r => String(r.overall_result || '') === 'พบปัญหา').length;
+  issueCountEl.textContent = pendingIssueCount;
 }
 
 function renderList(rows) {
@@ -252,12 +253,14 @@ function renderIssueList(rows) {
     card.className = 'inspection-card red';
     card.innerHTML = `
       <div class="inspection-left">
-        <div class="card-head">
+        <div class="card-head" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
           <div class="inspection-code">${escapeHtml(row.point_code || '-')}</div>
-          <div class="inspection-location">${escapeHtml(row.location || '-')}</div>
-          <div class="inspection-meta">${escapeHtml(row.building || '-')} · ${escapeHtml(row.hospital_zone || '-')}</div>
-          <div class="inspection-sub">ปัญหา: ${escapeHtml(row.problem_summary || '-')}</div>
-          <div class="inspection-sub">บันทึกล่าสุด: ${escapeHtml(formatDateTime(row.updated_at || row.created_at || ''))}</div>
+          <span class="issue-badge ${badgeClass}">${badgeText}</span>
+        </div>
+        <div class="inspection-location">${escapeHtml(row.location || '-')}</div>
+        <div class="inspection-meta">${escapeHtml(row.building || '-')} · ${escapeHtml(row.hospital_zone || '-')}</div>
+        <div class="inspection-sub">ปัญหา: ${escapeHtml(row.problem_summary || '-')}</div>
+        <div class="inspection-sub">บันทึกล่าสุด: ${escapeHtml(formatDateTime(row.updated_at || row.created_at || ''))}</div>
       </div>
 
       <div class="inspection-right">
@@ -503,18 +506,6 @@ function buildProblemSummary(values) {
   return failed.join(', ');
 }
 
-function buildIssueProblemSummary(point, values) {
-  const problemSummary = buildProblemSummary(values) || 'พบปัญหาจากการตรวจสอบ';
-  const pointDetails = [
-    point.point_code ? `จุดติดตั้ง: ${point.point_code}` : '',
-    point.location ? `พิกัด: ${point.location}` : '',
-    point.building ? `อาคาร: ${point.building}` : '',
-    point.hospital_zone ? `เขต: ${point.hospital_zone}` : ''
-  ].filter(Boolean);
-
-  if (!pointDetails.length) return problemSummary;
-  return `${problemSummary} | ${pointDetails.join(' | ')}`;
-}
 
 async function syncIssueForCheck({ checkId, point, overallResult, values }) {
   const { data: existingIssue, error: issueFindError } = await supabaseClient
@@ -528,7 +519,7 @@ async function syncIssueForCheck({ checkId, point, overallResult, values }) {
   }
 
   if (overallResult === 'พบปัญหา') {
-    const problemSummary = buildIssueProblemSummary(point, values);
+    const problemSummary = buildProblemSummary(values) || 'พบปัญหาจากการตรวจสอบ';
 
     const issuePayload = {
       point_id: point.point_id,
@@ -687,10 +678,15 @@ async function loadInspectionData() {
 
   const monthKey = getCurrentMonthKey();
 
-  const [{ data: points, error: pointsError }, { data: checks, error: checksError }] = await Promise.all([
-    supabaseClient.from('v_point_current_asset').select('*').order('point_code', { ascending: true }),
-    supabaseClient.from('checks').select('*').eq('check_month', monthKey)
-  ]);
+  const [
+      { data: points, error: pointsError },
+      { data: checks, error: checksError },
+      { data: issues, error: issuesError }
+    ] = await Promise.all([
+      supabaseClient.from('v_point_current_asset').select('*').order('point_code', { ascending: true }),
+      supabaseClient.from('checks').select('*').eq('check_month', monthKey),
+      supabaseClient.from('issues').select('id').eq('fix_status', 'pending')
+    ]);
 
   if (pointsError) {
     statusEl.textContent = 'โหลดข้อมูลไม่สำเร็จ';
@@ -703,6 +699,12 @@ async function loadInspectionData() {
     errorEl.textContent = checksError.message;
     return;
   }
+
+  if (issuesError) {
+    statusEl.textContent = 'โหลดข้อมูลไม่สำเร็จ';
+    errorEl.textContent = issuesError.message;
+    return;
+  } 
 
   const checkMap = new Map();
   (checks || []).forEach(item => checkMap.set(String(item.point_id), item));
@@ -725,7 +727,8 @@ async function loadInspectionData() {
       checkValues
     };
   });
-
+  
+  pendingIssueCount = (issues || []).length;
   updateSummary(allRows);
   statusEl.textContent = `โหลดข้อมูลสำเร็จ ${allRows.length} รายการ`;
   applyFilters();
