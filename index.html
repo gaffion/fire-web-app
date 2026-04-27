@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fire Web App</title>
+  <title>Fire Check NH</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
@@ -743,20 +743,23 @@
 
     .bottom-nav {
       position: fixed;
-      left: 50%;
-      right: auto;
-      bottom: 12px;
-      width: calc(100% - 28px);
-      max-width: 760px;
-      transform: translateX(-50%);
+      left: 8px;
+      right: 8px;
+      bottom: 0;
+      width: auto;
+      max-width: none;
+      transform: none;
       background: rgba(255, 255, 255, 0.97);
-      border: 1px solid rgba(219, 227, 239, 0.92);
-      border-radius: 26px;
+      border-top: 1px solid rgba(219, 227, 239, 0.92);
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      border-radius: 9px 9px 0 0;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(62px, 1fr));
+      grid-template-columns: repeat(5, 1fr);
       gap: 4px;
       padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18);
+      box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.08);
       z-index: 100;
     }
 
@@ -786,15 +789,27 @@
       border-color: #bfdbfe;
     }
 
-    .bottom-nav-icon {
-      font-size: 20px;
+    .nav-label {
+      font-size: 12px;
       line-height: 1;
+      white-space: nowrap;
     }
 
-    .bottom-nav-label {
-      font-size: 11px;
-      line-height: 1.1;
-      white-space: nowrap;
+    .nav-btn {
+      min-height: 50px;
+      gap: 2px;
+      padding: 4px 3px;
+    }
+
+    .nav-icon.material-symbols-outlined {
+      font-size: 16px !important;
+      line-height: 1;
+      display: block;
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 220,
+        'GRAD' -25,
+        'opsz' 20;
     }
 
     .toast {
@@ -857,14 +872,15 @@
       }
     }
 
-    .nav-icon {
-      font-size: 22px;
+    .nav-icon.material-symbols-outlined {
+      font-size: 18px !important;
       line-height: 1;
+      display: block;
       font-variation-settings:
         'FILL' 0,
-        'wght' 400,
-        'GRAD' 0,
-        'opsz' 24;
+        'wght' 250,
+        'GRAD' -25,
+        'opsz' 20;
     }
 
     .nav-btn.active .nav-icon,
@@ -877,10 +893,6 @@
       color: #94a3b8;
     }
 
-    .nav-btn .nav-icon,
-    .nav-btn .nav-label {
-      color: #94a3b8;
-    }
 	  </style>
 </head>
 <body>
@@ -915,7 +927,7 @@
       <div class="app-brand">
         <div class="app-brand-icon" aria-hidden="true">🧯</div>
         <div>
-          <div class="app-brand-title">Fire Web App</div>
+          <div class="app-brand-title">Fire Check</div>
           <span class="current-user">
             <span id="currentUserName">สวัสดี, -</span>
             <span id="currentUserRole" class="current-role">-</span>
@@ -926,7 +938,7 @@
     </div>
 
     <section id="dashboardPage">
-      <h1 class="title">Fire Web App</h1>
+      <h1 class="title">ระบบตรวจสอบถังดับเพลิง</h1>
       <p class="subtitle">ภาพรวมการตรวจถังดับเพลิง</p>
 
       <div class="summary-grid">
