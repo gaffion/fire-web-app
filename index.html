@@ -103,6 +103,9 @@
       background: #e2e8f0;
       color: #1f2937;
     }
+    .btn.warning {
+      background: #f97316;
+    }
 
     .filter-row {
       display: flex;
@@ -308,6 +311,9 @@
       grid-template-columns: 1fr 1fr;
       gap: 10px;
       margin-top: 16px;
+    }
+    .form-actions .full {
+      grid-column: 1 / -1;
     }
 
     .bottom-nav {
@@ -525,6 +531,7 @@
         <div class="form-actions">
           <button id="btnBackPointForm" class="btn secondary" type="button">กลับ</button>
           <button id="btnSavePointForm" class="btn" type="button">บันทึกข้อมูล</button>
+          <button id="btnReplaceAsset" class="btn warning full" type="button">เปลี่ยนถังใหม่</button>
         </div>
       </div>
     </section>

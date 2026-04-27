@@ -102,6 +102,7 @@ const pointFormAssetNoteEl = document.getElementById('pointFormAssetNote');
 
 const btnBackPointForm = document.getElementById('btnBackPointForm');
 const btnSavePointForm = document.getElementById('btnSavePointForm');
+const btnReplaceAsset = document.getElementById('btnReplaceAsset');
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -1037,6 +1038,104 @@ if (currentPointRow.asset_id) {
   showPointsPage();
 }
 
+async function replaceAssetForPoint() {
+  if (!currentPointRow || !currentPointRow.point_id) {
+    alert('ไม่พบข้อมูลจุดติดตั้งสำหรับเปลี่ยนถัง');
+    return;
+  }
+
+  if (!confirm('ยืนยันการเปลี่ยนถังใหม่ใช่หรือไม่')) return;
+
+  btnReplaceAsset.disabled = true;
+  btnReplaceAsset.textContent = 'กำลังเปลี่ยนถัง...';
+
+  const now = new Date().toISOString();
+  let oldAsset = null;
+
+  if (currentPointRow.asset_id) {
+    const { data, error } = await supabaseClient
+      .from('assets')
+      .select('id, install_round')
+      .eq('id', currentPointRow.asset_id)
+      .maybeSingle();
+
+    if (error) {
+      btnReplaceAsset.disabled = false;
+      btnReplaceAsset.textContent = 'เปลี่ยนถังใหม่';
+      alert('ดึงข้อมูลถังเดิมไม่สำเร็จ: ' + error.message);
+      return;
+    }
+
+    oldAsset = data;
+  }
+
+  const oldInstallRound = Number(oldAsset?.install_round || 0);
+  const newAssetStatus = 'active';
+
+  if (oldAsset) {
+    const { data: updatedAsset, error: updateError } = await supabaseClient
+      .from('assets')
+      .update({
+        asset_status: 'replaced',
+        removed_at: now,
+        remove_reason: 'เปลี่ยนถังใหม่'
+      })
+      .eq('id', oldAsset.id)
+      .select('id')
+      .maybeSingle();
+
+    if (updateError) {
+      btnReplaceAsset.disabled = false;
+      btnReplaceAsset.textContent = 'เปลี่ยนถังใหม่';
+      alert('ปิดถังเดิมไม่สำเร็จ: ' + updateError.message);
+      return;
+    }
+
+    if (!updatedAsset) {
+      btnReplaceAsset.disabled = false;
+      btnReplaceAsset.textContent = 'เปลี่ยนถังใหม่';
+      alert('ไม่สามารถปิดถังเดิมได้ อาจติด policy หรือไม่พบแถวข้อมูล');
+      return;
+    }
+  }
+
+  const { data: insertedAsset, error: insertError } = await supabaseClient
+    .from('assets')
+    .insert({
+      point_id: currentPointRow.point_id,
+      install_round: Number.isFinite(oldInstallRound) ? oldInstallRound + 1 : 1,
+      tank_color: pointFormTankColorEl.value,
+      asset_status: newAssetStatus,
+      expiry_date: pointFormExpiryDateEl.value || null,
+      installed_at: now,
+      note: pointFormAssetNoteEl.value.trim()
+    })
+    .select('id')
+    .maybeSingle();
+
+  if (insertError) {
+    btnReplaceAsset.disabled = false;
+    btnReplaceAsset.textContent = 'เปลี่ยนถังใหม่';
+    alert('สร้างถังใหม่ไม่สำเร็จ: ' + insertError.message);
+    return;
+  }
+
+  if (!insertedAsset) {
+    btnReplaceAsset.disabled = false;
+    btnReplaceAsset.textContent = 'เปลี่ยนถังใหม่';
+    alert('ไม่สามารถสร้างถังใหม่ได้ อาจติด policy หรือไม่พบแถวข้อมูล');
+    return;
+  }
+
+  btnReplaceAsset.disabled = false;
+  btnReplaceAsset.textContent = 'เปลี่ยนถังใหม่';
+
+  showToast('เปลี่ยนถังใหม่สำเร็จ');
+  await loadPointsData();
+  await loadInspectionData();
+  showPointsPage();
+}
+
 bindEvent(searchInput, 'input', applyFilters, 'searchInput');
 bindEvent(btnReload, 'click', loadInspectionData, 'btnReload');
 bindEvent(btnBack, 'click', showInspectionPage, 'btnBack');
@@ -1067,6 +1166,7 @@ bindEvent(btnReloadPoints, 'click', loadPointsData, 'btnReloadPoints');
 
 bindEvent(btnBackPointForm, 'click', showPointsPage, 'btnBackPointForm');
 bindEvent(btnSavePointForm, 'click', savePointForm, 'btnSavePointForm');
+bindEvent(btnReplaceAsset, 'click', replaceAssetForPoint, 'btnReplaceAsset');
 
 document.querySelectorAll('#filterRow .filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {
