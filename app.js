@@ -146,6 +146,8 @@ const userFormStatusEl = document.getElementById('userFormStatus');
 const btnBackUserForm = document.getElementById('btnBackUserForm');
 const btnSaveUserForm = document.getElementById('btnSaveUserForm');
 
+const btnPassAllChecks = document.getElementById('btnPassAllChecks');
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -2042,6 +2044,16 @@ async function replaceAssetForPoint() {
   showPointsPage();
 }
 
+function setAllChecksPass() {
+  CHECK_FIELDS.forEach(field => {
+    const passBtn = document.querySelector(`.pass-btn[data-key="${field.key}"]`);
+    const failBtn = document.querySelector(`.fail-btn[data-key="${field.key}"]`);
+
+    if (passBtn) passBtn.classList.add('active', 'pass');
+    if (failBtn) failBtn.classList.remove('active', 'fail');
+  });
+}
+
 bindEvent(searchInput, 'input', applyFilters, 'searchInput');
 bindEvent(btnLogin, 'click', login, 'btnLogin');
 bindEvent(loginUsernameEl, 'keydown', event => {
@@ -2130,4 +2142,8 @@ if (savedUser) {
   loadInspectionData();
 } else {
   showLoginPage();
+
+  
 }
+
+bindEvent(btnPassAllChecks, 'click', setAllChecksPass, 'btnPassAllChecks');
