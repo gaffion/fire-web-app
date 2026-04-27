@@ -6,6 +6,7 @@
   <title>Fire Web App</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
   <style>
     :root {
       --bg: #f5f7fb;
@@ -855,6 +856,31 @@
         flex: 0 0 auto;
       }
     }
+
+    .nav-icon {
+      font-size: 22px;
+      line-height: 1;
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24;
+    }
+
+    .nav-btn.active .nav-icon,
+    .nav-btn.active .nav-label {
+      color: #2563eb;
+    }
+
+    .nav-btn .nav-icon,
+    .nav-btn .nav-label {
+      color: #94a3b8;
+    }
+
+    .nav-btn .nav-icon,
+    .nav-btn .nav-label {
+      color: #94a3b8;
+    }
 	  </style>
 </head>
 <body>
@@ -1162,26 +1188,30 @@
     </section>
   </div>
 
-  <div class="bottom-nav hidden" id="bottomNav">
-    <button id="navDashboard" class="nav-btn bottom-nav-item active" type="button">
-      <span class="bottom-nav-icon" aria-hidden="true">⌂</span>
-      <span class="bottom-nav-label">หน้าหลัก</span>
+  <div class="bottom-nav" id="bottomNav">
+    <button id="navDashboard" class="nav-btn active" type="button">
+      <span class="nav-icon material-symbols-outlined">home</span>
+      <span class="nav-label">หน้าหลัก</span>
     </button>
-    <button id="navInspection" class="nav-btn bottom-nav-item" type="button">
-      <span class="bottom-nav-icon" aria-hidden="true">✓</span>
-      <span class="bottom-nav-label">ตรวจสอบ</span>
+
+    <button id="navInspection" class="nav-btn" type="button">
+      <span class="nav-icon material-symbols-outlined">assignment</span>
+      <span class="nav-label">ตรวจสอบ</span>
     </button>
-    <button id="navIssues" class="nav-btn bottom-nav-item" type="button">
-      <span class="bottom-nav-icon" aria-hidden="true">!</span>
-      <span class="bottom-nav-label">ปัญหา</span>
+
+    <button id="navPoints" class="nav-btn" type="button">
+      <span class="nav-icon material-symbols-outlined">location_on</span>
+      <span class="nav-label">จุดติดตั้ง</span>
     </button>
-    <button id="navPoints" class="nav-btn bottom-nav-item" type="button">
-      <span class="bottom-nav-icon" aria-hidden="true">⌖</span>
-      <span class="bottom-nav-label">จุดติดตั้ง</span>
+
+    <button id="navIssues" class="nav-btn" type="button">
+      <span class="nav-icon material-symbols-outlined">warning</span>
+      <span class="nav-label">ปัญหา</span>
     </button>
-    <button id="navUsers" class="nav-btn bottom-nav-item hidden" type="button">
-      <span class="bottom-nav-icon" aria-hidden="true">◦</span>
-      <span class="bottom-nav-label">ผู้ใช้</span>
+
+    <button id="navUsers" class="nav-btn" type="button">
+      <span class="nav-icon material-symbols-outlined">group</span>
+      <span class="nav-label">ผู้ใช้</span>
     </button>
   </div>
 
