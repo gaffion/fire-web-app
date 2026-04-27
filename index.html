@@ -19,6 +19,50 @@
       padding: 18px 14px 100px;
       box-sizing: border-box;
     }
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 14px;
+      box-sizing: border-box;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 18px;
+      box-sizing: border-box;
+    }
+    .login-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin: 0 0 6px;
+    }
+    .login-subtitle {
+      margin: 0 0 16px;
+      color: #64748b;
+      font-size: 14px;
+    }
+    .app-user-bar {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .current-user {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1f2937;
+      min-width: 0;
+    }
     .hidden { display: none !important; }
 
     .title {
@@ -409,7 +453,28 @@
 	  </style>
 </head>
 <body>
-  <div class="app">
+  <section id="loginPage" class="login-page">
+    <div class="login-card">
+      <h1 class="login-title">Fire Web App</h1>
+      <p class="login-subtitle">เข้าสู่ระบบเพื่อใช้งาน</p>
+
+      <div class="label">ชื่อผู้ใช้</div>
+      <input id="loginUsername" class="search" style="width:100%;margin-bottom:12px;" autocomplete="username">
+
+      <div class="label">รหัสผ่าน</div>
+      <input id="loginPassword" type="password" class="search" style="width:100%;margin-bottom:12px;" autocomplete="current-password">
+
+      <div id="loginError" class="error"></div>
+      <button id="btnLogin" class="btn" style="width:100%;" type="button">เข้าสู่ระบบ</button>
+    </div>
+  </section>
+
+  <div id="appShell" class="app hidden">
+    <div class="app-user-bar">
+      <span id="currentUserName" class="current-user">สวัสดี, -</span>
+      <button id="btnLogout" class="btn secondary" type="button">ออกจากระบบ</button>
+    </div>
+
     <section id="dashboardPage">
       <h1 class="title">Fire Web App</h1>
       <p class="subtitle">ภาพรวมการตรวจถังดับเพลิง</p>

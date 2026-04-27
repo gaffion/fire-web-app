@@ -17,6 +17,9 @@ let allPoints = [];
 let activePointFilter = 'all';
 let currentPointRow = null;
 let isCreatingPoint = false;
+let currentUser = null;
+
+const SESSION_KEY = 'fireAppSession';
 
 const CHECK_FIELDS = [
   { key: 'pressure_gauge', label: '1) มาตรวัดความดัน' },
@@ -33,6 +36,14 @@ const CHECK_FIELDS = [
 const dashboardPage = document.getElementById('dashboardPage');
 const inspectionPage = document.getElementById('inspectionPage');
 const formPage = document.getElementById('formPage');
+const appShell = document.getElementById('appShell');
+const loginPage = document.getElementById('loginPage');
+const loginUsernameEl = document.getElementById('loginUsername');
+const loginPasswordEl = document.getElementById('loginPassword');
+const btnLogin = document.getElementById('btnLogin');
+const loginErrorEl = document.getElementById('loginError');
+const currentUserNameEl = document.getElementById('currentUserName');
+const btnLogout = document.getElementById('btnLogout');
 
 const navDashboard = document.getElementById('navDashboard');
 const navInspection = document.getElementById('navInspection');
@@ -133,6 +144,161 @@ function bindEvent(element, eventName, handler, label) {
   }
 
   element.addEventListener(eventName, handler);
+}
+
+function saveSession(user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({
+    id: user.id,
+    username: user.username,
+    fullname: user.fullname,
+    role: user.role
+  }));
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    localStorage.removeItem(SESSION_KEY);
+    return null;
+  }
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function setCurrentUser(user) {
+  currentUser = user;
+  currentUserNameEl.textContent = user
+    ? `สวัสดี, ${user.fullname || user.username || '-'}`
+    : 'สวัสดี, -';
+}
+
+function getCurrentUser() {
+  return currentUser;
+}
+
+function getCurrentUsername() {
+  return getCurrentUser()?.username || 'unknown';
+}
+
+function getCurrentFullname() {
+  return getCurrentUser()?.fullname || getCurrentUser()?.username || 'unknown';
+}
+
+function showLoginPage() {
+  loginPage.classList.remove('hidden');
+  appShell.classList.add('hidden');
+  bottomNav.classList.add('hidden');
+  loginPasswordEl.value = '';
+  loginErrorEl.textContent = '';
+}
+
+function showAppShell() {
+  loginPage.classList.add('hidden');
+  appShell.classList.remove('hidden');
+  showDashboardPage();
+}
+
+async function logLoginAttempt({ username, loginResult, message, user = null }) {
+  const { error } = await supabaseClient
+    .from('login_logs')
+    .insert({
+      username,
+      fullname: user?.fullname || null,
+      role: user?.role || null,
+      login_result: loginResult,
+      message,
+      device_info: navigator.userAgent
+    });
+
+  if (error) {
+    console.warn('logLoginAttempt failed:', error.message);
+  }
+}
+
+async function login() {
+  const username = loginUsernameEl.value.trim();
+  const password = loginPasswordEl.value;
+
+  loginErrorEl.textContent = '';
+
+  if (!username || !password) {
+    loginErrorEl.textContent = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
+    return;
+  }
+
+  btnLogin.disabled = true;
+  btnLogin.textContent = 'กำลังเข้าสู่ระบบ...';
+
+  const { data: user, error } = await supabaseClient
+    .from('users')
+    .select('id, username, password, fullname, role, status')
+    .eq('username', username)
+    .eq('status', 'active')
+    .maybeSingle();
+
+    console.log('login query error =', error);
+    console.log('login user =', user);
+
+    if (user) {
+      console.log('db password =', JSON.stringify(user.password));
+      console.log('input password =', JSON.stringify(password));
+      console.log('password matched =', String(user.password || '') === password);
+    }
+
+  if (error) {
+    btnLogin.disabled = false;
+    btnLogin.textContent = 'เข้าสู่ระบบ';
+    loginErrorEl.textContent = 'เข้าสู่ระบบไม่สำเร็จ';
+    await logLoginAttempt({
+      username,
+      loginResult: 'failed',
+      message: error.message
+    });
+    return;
+  }
+
+  if (!user || String(user.password || '') !== password) {
+    btnLogin.disabled = false;
+    btnLogin.textContent = 'เข้าสู่ระบบ';
+    loginErrorEl.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+    await logLoginAttempt({
+      username,
+      loginResult: 'failed',
+      message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'
+    });
+    return;
+  }
+
+  const sessionUser = {
+    id: user.id,
+    username: user.username,
+    fullname: user.fullname,
+    role: user.role
+  };
+
+  setCurrentUser(sessionUser);
+  saveSession(sessionUser);
+  await logLoginAttempt({
+    username: sessionUser.username,
+    loginResult: 'success',
+    message: 'เข้าสู่ระบบสำเร็จ',
+    user: sessionUser
+  });
+
+  btnLogin.disabled = false;
+  btnLogin.textContent = 'เข้าสู่ระบบ';
+  showAppShell();
+  await loadInspectionData();
+}
+
+function logout() {
+  clearSession();
+  setCurrentUser(null);
+  showLoginPage();
 }
 
 function setActiveNav(page) {
@@ -379,8 +545,8 @@ async function saveIssueForm() {
     fix_status: issueFixStatusInput.value,
     fix_note: issueFixNoteInput.value.trim(),
     fixed_at: issueFixStatusInput.value === 'fixed' ? new Date().toISOString() : null,
-    fixed_by: issueFixStatusInput.value === 'fixed' ? 'demo' : null,
-    fixed_by_name: issueFixStatusInput.value === 'fixed' ? 'ผู้ทดสอบระบบ' : null
+    fixed_by: issueFixStatusInput.value === 'fixed' ? getCurrentUsername() : null,
+    fixed_by_name: issueFixStatusInput.value === 'fixed' ? getCurrentFullname() : null
   };
 
   const { error } = await supabaseClient
@@ -588,8 +754,8 @@ async function syncIssueForCheck({ checkId, point, overallResult, values }) {
       point_id: point.point_id,
       check_id: checkId,
       problem_summary: problemSummary,
-      reported_by: 'demo',
-      reported_by_name: 'ผู้ทดสอบระบบ',
+      reported_by: getCurrentUsername(),
+      reported_by_name: getCurrentFullname(),
       fix_status: 'pending',
       fix_note: existingIssue?.fix_note || null,
       fixed_at: null,
@@ -622,8 +788,8 @@ async function syncIssueForCheck({ checkId, point, overallResult, values }) {
         fix_status: 'fixed',
         fix_note: existingIssue.fix_note || 'ระบบปิดงานอัตโนมัติหลังตรวจผ่าน',
         fixed_at: new Date().toISOString(),
-        fixed_by: 'demo',
-        fixed_by_name: 'ผู้ทดสอบระบบ'
+        fixed_by: getCurrentUsername(),
+        fixed_by_name: getCurrentFullname()
       })
       .eq('id', existingIssue.id);
 
@@ -651,8 +817,8 @@ async function saveCheck() {
     asset_id: currentFormRow.asset_id || null,
     check_month: monthKey,
     checked_at: new Date().toISOString(),
-    checked_by: 'demo',
-    checked_by_name: 'ผู้ทดสอบระบบ',
+    checked_by: getCurrentUsername(),
+    checked_by_name: getCurrentFullname(),
     inspected_device: navigator.userAgent,
     pressure_gauge: values.pressure_gauge,
     safety_pin_and_seal: values.safety_pin_and_seal,
@@ -1328,6 +1494,14 @@ async function replaceAssetForPoint() {
 }
 
 bindEvent(searchInput, 'input', applyFilters, 'searchInput');
+bindEvent(btnLogin, 'click', login, 'btnLogin');
+bindEvent(loginUsernameEl, 'keydown', event => {
+  if (event.key === 'Enter') login();
+}, 'loginUsername');
+bindEvent(loginPasswordEl, 'keydown', event => {
+  if (event.key === 'Enter') login();
+}, 'loginPassword');
+bindEvent(btnLogout, 'click', logout, 'btnLogout');
 bindEvent(btnReload, 'click', loadInspectionData, 'btnReload');
 bindEvent(btnBack, 'click', showInspectionPage, 'btnBack');
 bindEvent(btnSaveCheck, 'click', saveCheck, 'btnSaveCheck');
@@ -1378,5 +1552,20 @@ document.querySelectorAll('#issueFilterRow .filter-chip').forEach(btn => {
   });
 });
 
-loadInspectionData();
-showDashboardPage();
+document.querySelectorAll('#pointFilterRow .filter-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#pointFilterRow .filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activePointFilter = btn.dataset.filter;
+    applyPointFilters();
+  });
+});
+
+const savedUser = loadSession();
+if (savedUser) {
+  setCurrentUser(savedUser);
+  showAppShell();
+  loadInspectionData();
+} else {
+  showLoginPage();
+}
