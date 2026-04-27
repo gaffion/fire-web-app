@@ -317,13 +317,14 @@ function requireRole(checkFn, message = 'คุณไม่มีสิทธิ
 function setPointFormEditable(canEdit) {
   pointFormCodeEl.readOnly = !canEdit;
   pointFormLocationEl.readOnly = !canEdit;
-  pointFormBuildingEl.readOnly = !canEdit;
-  pointFormHospitalZoneEl.readOnly = !canEdit;
+  pointFormBuildingEl.disabled = !canEdit;
+  pointFormHospitalZoneEl.disabled = !canEdit;
   pointFormNoteEl.readOnly = !canEdit;
   pointFormTankColorEl.disabled = !canEdit;
   pointFormAssetStatusEl.disabled = !canEdit;
   pointFormExpiryDateEl.readOnly = !canEdit;
   pointFormAssetNoteEl.readOnly = !canEdit;
+  if (pointFormBuildingOtherEl) pointFormBuildingOtherEl.disabled = !canEdit;
   btnSavePointForm.disabled = !canEdit;
 }
 
@@ -781,6 +782,13 @@ async function saveIssueForm() {
 
   btnSaveIssue.disabled = true;
   btnSaveIssue.textContent = 'กำลังบันทึก...';
+
+  const validationMessage = validateIssueForm();
+  if (validationMessage) {
+    resetButton(btnSaveIssue, 'บันทึกข้อมูล');
+    alert(validationMessage);
+    return;
+  }
 
   const payload = {
     fix_status: issueFixStatusInput.value,
@@ -1501,7 +1509,14 @@ async function saveUserForm() {
   btnSaveUserForm.disabled = true;
   btnSaveUserForm.textContent = 'กำลังบันทึก...';
 
-  const username = userFormUsernameEl.value.trim();
+  const validationMessage = validateUserForm();
+  if (validationMessage) {
+    resetButton(btnSaveUserForm, 'บันทึกข้อมูล');
+    alert(validationMessage);
+    return;
+  }
+
+  const username = userFormUsernameEl.value.trim().toLowerCase();
   const password = userFormPasswordEl.value;
   const payload = {
     username,
@@ -1509,13 +1524,6 @@ async function saveUserForm() {
     role: userFormRoleEl.value,
     status: userFormStatusEl.value
   };
-
-  if (!payload.username || !payload.fullname || !payload.role || !payload.status || (isCreatingUser && !password)) {
-    btnSaveUserForm.disabled = false;
-    btnSaveUserForm.textContent = 'บันทึกข้อมูล';
-    alert('กรุณากรอกข้อมูลผู้ใช้ให้ครบ');
-    return;
-  }
 
   const { data: duplicateUsers, error: duplicateError } = await supabaseClient
     .from('users')
@@ -1756,20 +1764,20 @@ async function createPointWithAsset() {
   btnSavePointForm.disabled = true;
   btnSavePointForm.textContent = 'กำลังบันทึก...';
 
+  const validationMessage = validatePointForm();
+  if (validationMessage) {
+    resetButton(btnSavePointForm, 'บันทึกข้อมูล');
+    alert(validationMessage);
+    return;
+  }
+
   const pointPayload = {
     point_code: formatPointCode(pointFormCodeEl.value),
     location: pointFormLocationEl.value.trim(),
-    building: pointFormBuildingEl.value.trim(),
+    building: getResolvedPointBuilding(),
     hospital_zone: pointFormHospitalZoneEl.value.trim(),
     note: pointFormNoteEl.value.trim()
   };
-
-  if (!pointPayload.point_code || !pointPayload.location || !pointPayload.building || !pointPayload.hospital_zone) {
-    btnSavePointForm.disabled = false;
-    btnSavePointForm.textContent = 'บันทึกข้อมูล';
-    alert('กรุณากรอกข้อมูลจุดติดตั้งให้ครบ');
-    return;
-  }
 
   const { data: duplicatePoints, error: duplicateError } = await supabaseClient
     .from('points')
@@ -1816,7 +1824,7 @@ async function createPointWithAsset() {
       point_id: insertedPoint.id,
       install_round: 1,
       tank_color: pointFormTankColorEl.value,
-      asset_status: 'active',
+      asset_status: pointFormAssetStatusEl.value,
       expiry_date: pointFormExpiryDateEl.value || null,
       installed_at: new Date().toISOString(),
       note: pointFormAssetNoteEl.value.trim()
@@ -1861,15 +1869,17 @@ async function savePointForm() {
   btnSavePointForm.disabled = true;
   btnSavePointForm.textContent = 'กำลังบันทึก...';
 
-  const resolvedBuilding =
-    pointFormBuildingEl.value === 'อาคารอื่นๆ...'
-      ? pointFormBuildingOtherEl.value.trim()
-      : pointFormBuildingEl.value.trim();
+  const validationMessage = validatePointForm();
+  if (validationMessage) {
+    resetButton(btnSavePointForm, 'บันทึกข้อมูล');
+    alert(validationMessage);
+    return;
+  }
 
   const pointPayload = {
-    point_code: pointFormCodeEl.value.trim(),
+    point_code: formatPointCode(pointFormCodeEl.value),
     location: pointFormLocationEl.value.trim(),
-    building: resolvedBuilding,
+    building: getResolvedPointBuilding(),
     hospital_zone: pointFormHospitalZoneEl.value.trim(),
     note: pointFormNoteEl.value.trim()
   };
@@ -1880,20 +1890,6 @@ async function savePointForm() {
     expiry_date: pointFormExpiryDateEl.value || null,
     note: pointFormAssetNoteEl.value.trim()
   };
-
-  if (pointFormBuildingEl.value === 'อาคารอื่นๆ...' && !pointFormBuildingOtherEl.value.trim()) {
-    btnSavePointForm.disabled = false;
-    btnSavePointForm.textContent = 'บันทึกข้อมูล';
-    alert('กรุณาระบุชื่ออาคาร');
-    return;
-  }
-
-  if (!pointPayload.point_code || !pointPayload.location || !pointPayload.building || !pointPayload.hospital_zone) {
-    btnSavePointForm.disabled = false;
-    btnSavePointForm.textContent = 'บันทึกข้อมูล';
-    alert('กรุณากรอกข้อมูลจุดติดตั้งให้ครบ');
-    return;
-  }
 
   const { data: duplicatePoints, error: duplicateError } = await supabaseClient
     .from('points')
@@ -2132,6 +2128,128 @@ function formatPointCode(value) {
   return `P-${String(number).padStart(3, '0')}`;
 }
 
+function isValidPointCode(value) {
+  return /^P-\d{3}$/.test(formatPointCode(value));
+}
+
+function resetButton(button, text) {
+  if (!button) return;
+  button.disabled = false;
+  button.textContent = text;
+}
+
+function getResolvedPointBuilding() {
+  if (pointFormBuildingEl.value === 'อาคารอื่นๆ...') {
+    return pointFormBuildingOtherEl?.value.trim() || '';
+  }
+
+  return pointFormBuildingEl.value.trim();
+}
+
+function validatePointForm() {
+  const formattedPointCode = formatPointCode(pointFormCodeEl.value);
+  pointFormCodeEl.value = formattedPointCode;
+
+  if (!formattedPointCode) {
+    return 'กรุณาระบุหมายเลขจุดติดตั้ง';
+  }
+
+  if (!isValidPointCode(formattedPointCode)) {
+    return 'กรุณาระบุหมายเลขจุดติดตั้งให้ถูกต้อง เช่น P-001';
+  }
+
+  if (!pointFormHospitalZoneEl.value) {
+    return 'กรุณาเลือกเขต';
+  }
+
+  if (!pointFormBuildingEl.value) {
+    return 'กรุณาเลือกอาคาร';
+  }
+
+  if (pointFormBuildingEl.value === 'อาคารอื่นๆ...' && !getResolvedPointBuilding()) {
+    return 'กรุณาระบุชื่ออาคาร';
+  }
+
+  if (!pointFormLocationEl.value.trim()) {
+    return 'กรุณาระบุพิกัด';
+  }
+
+  if (!pointFormTankColorEl.value) {
+    return 'กรุณาเลือกสีถัง';
+  }
+
+  if (!pointFormAssetStatusEl.value) {
+    return 'กรุณาเลือกสถานะถัง';
+  }
+
+  const expiryDate = pointFormExpiryDateEl.value;
+  if (expiryDate) {
+    const match = expiryDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const parsedDate = match
+      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      : null;
+    if (
+      !match ||
+      Number.isNaN(parsedDate.getTime()) ||
+      parsedDate.getFullYear() !== Number(match[1]) ||
+      parsedDate.getMonth() !== Number(match[2]) - 1 ||
+      parsedDate.getDate() !== Number(match[3])
+    ) {
+      return 'กรุณาระบุวันหมดอายุให้ถูกต้อง';
+    }
+  }
+
+  return '';
+}
+
+function validateIssueForm() {
+  if (!issueFixStatusInput.value) {
+    return 'กรุณาเลือกสถานะการแก้ไข';
+  }
+
+  if (issueFixStatusInput.value === 'fixed' && !issueFixNoteInput.value.trim()) {
+    return 'กรุณากรอกบันทึกการแก้ไข';
+  }
+
+  return '';
+}
+
+function validateUserForm() {
+  const username = userFormUsernameEl.value.trim().toLowerCase();
+  userFormUsernameEl.value = username;
+
+  if (!username) {
+    return 'กรุณากรอก username';
+  }
+
+  if (!/^[a-zA-Z0-9._-]{3,30}$/.test(username)) {
+    return 'username ใช้ได้เฉพาะตัวอักษรอังกฤษ ตัวเลข จุด ขีดกลาง และขีดล่าง ความยาว 3-30 ตัวอักษร';
+  }
+
+  const password = userFormPasswordEl.value;
+  if (isCreatingUser && !password) {
+    return 'กรุณากรอก password';
+  }
+
+  if (password && password.length < 4) {
+    return 'password ต้องยาวอย่างน้อย 4 ตัวอักษร';
+  }
+
+  if (!userFormFullnameEl.value.trim()) {
+    return 'กรุณากรอกชื่อ-สกุล';
+  }
+
+  if (!userFormRoleEl.value) {
+    return 'กรุณาเลือก role';
+  }
+
+  if (!userFormStatusEl.value) {
+    return 'กรุณาเลือก status';
+  }
+
+  return '';
+}
+
 function populateBuildingOptionsByZone(zone, selectedBuilding = '') {
   if (!pointFormBuildingEl) return;
 
@@ -2188,10 +2306,10 @@ bindEvent(btnAddUser, 'click', openNewUserForm, 'btnAddUser');
 bindEvent(btnBackUserForm, 'click', showUsersPage, 'btnBackUserForm');
 bindEvent(btnSaveUserForm, 'click', saveUserForm, 'btnSaveUserForm');
 
-bindEvent(pointFormCodeEl, 'input', () => {
+bindEvent(pointFormCodeEl, 'blur', () => {
   const formatted = formatPointCode(pointFormCodeEl.value);
   pointFormCodeEl.value = formatted;
-}, 'pointFormCodeInputFormat');
+}, 'pointFormCodeBlurFormat');
 
 bindEvent(pointFormHospitalZoneEl, 'change', handleHospitalZoneChange, 'pointFormHospitalZoneChange');
 bindEvent(pointFormBuildingEl, 'change', handleBuildingChange, 'pointFormBuildingChange');
