@@ -185,7 +185,14 @@ function getCurrentUsername() {
 }
 
 function getCurrentFullname() {
-  return getCurrentUser()?.fullname || getCurrentUser()?.username || 'unknown';
+  return getCurrentUser()?.fullname || getCurrentUser()?.username || 'ไม่ทราบชื่อผู้ใช้';
+}
+
+function requireCurrentUser() {
+  if (getCurrentUser()) return true;
+  alert('กรุณาเข้าสู่ระบบใหม่');
+  showLoginPage();
+  return false;
 }
 
 function showLoginPage() {
@@ -240,15 +247,6 @@ async function login() {
     .eq('status', 'active')
     .maybeSingle();
 
-    console.log('login query error =', error);
-    console.log('login user =', user);
-
-    if (user) {
-      console.log('db password =', JSON.stringify(user.password));
-      console.log('input password =', JSON.stringify(password));
-      console.log('password matched =', String(user.password || '') === password);
-    }
-
   if (error) {
     btnLogin.disabled = false;
     btnLogin.textContent = 'เข้าสู่ระบบ';
@@ -298,6 +296,14 @@ async function login() {
 function logout() {
   clearSession();
   setCurrentUser(null);
+  currentFormRow = null;
+  currentIssueRow = null;
+  currentPointRow = null;
+  isCreatingPoint = false;
+  allRows = [];
+  allIssues = [];
+  allPoints = [];
+  pendingIssueCount = 0;
   showLoginPage();
 }
 
@@ -537,6 +543,7 @@ function openIssueForm(row) {
 
 async function saveIssueForm() {
   if (!currentIssueRow) return;
+  if (!requireCurrentUser()) return;
 
   btnSaveIssue.disabled = true;
   btnSaveIssue.textContent = 'กำลังบันทึก...';
@@ -799,6 +806,7 @@ async function syncIssueForCheck({ checkId, point, overallResult, values }) {
 
 async function saveCheck() {
   if (!currentFormRow) return;
+  if (!requireCurrentUser()) return;
 
   const { values, incomplete } = getFormValues();
   if (incomplete) {
@@ -1171,6 +1179,8 @@ async function openPointForm(row) {
 }
 
 async function createPointWithAsset() {
+  if (!requireCurrentUser()) return;
+
   btnSavePointForm.disabled = true;
   btnSavePointForm.textContent = 'กำลังบันทึก...';
 
@@ -1267,6 +1277,8 @@ async function createPointWithAsset() {
 }
 
 async function savePointForm() {
+  if (!requireCurrentUser()) return;
+
   if (isCreatingPoint) {
     await createPointWithAsset();
     return;
@@ -1291,10 +1303,6 @@ async function savePointForm() {
     expiry_date: pointFormExpiryDateEl.value || null,
     note: pointFormAssetNoteEl.value.trim()
   };
-
-  console.log('savePointForm currentPointRow =', currentPointRow);
-  console.log('savePointForm pointPayload =', pointPayload);
-  console.log('savePointForm assetPayload =', assetPayload);
 
   if (!pointPayload.point_code || !pointPayload.location || !pointPayload.building || !pointPayload.hospital_zone) {
     btnSavePointForm.disabled = false;
@@ -1347,8 +1355,6 @@ async function savePointForm() {
     return;
   }
 
-  console.log('updatedPoint =', updatedPoint);
-
   if (pointError) {
     btnSavePointForm.disabled = false;
     btnSavePointForm.textContent = 'บันทึกข้อมูล';
@@ -1396,6 +1402,8 @@ if (currentPointRow.asset_id) {
 }
 
 async function replaceAssetForPoint() {
+  if (!requireCurrentUser()) return;
+
   if (!currentPointRow || !currentPointRow.point_id) {
     alert('ไม่พบข้อมูลจุดติดตั้งสำหรับเปลี่ยนถัง');
     return;
