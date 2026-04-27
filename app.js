@@ -11,6 +11,7 @@ let filteredInspectionRows = [];
 let activeFilter = 'all';
 let currentFormRow = null;
 let allIssues = [];
+let filteredIssueRows = [];
 let activeIssueFilter = 'pending';
 let currentIssueRow = null;
 let pendingIssueCount = 0;
@@ -87,6 +88,7 @@ const issueErrorEl = document.getElementById('issueError');
 const issueListEl = document.getElementById('issueList');
 const issueSearchInput = document.getElementById('issueSearchInput');
 const btnReloadIssues = document.getElementById('btnReloadIssues');
+const btnExportIssuesCsv = document.getElementById('btnExportIssuesCsv');
 
 const issueFormPointCodeEl = document.getElementById('issueFormPointCode');
 const issueFormLocationEl = document.getElementById('issueFormLocation');
@@ -668,7 +670,56 @@ function applyIssueFilters() {
     return true;
   });
 
+  filteredIssueRows = filtered;
   renderIssueList(filtered);
+}
+
+function getIssueFixStatusLabel(status) {
+  const statusKey = String(status || '').toLowerCase();
+  if (statusKey === 'pending') return 'รอดำเนินการ';
+  if (statusKey === 'fixed') return 'ซ่อมแล้ว';
+  return status || '-';
+}
+
+function exportIssuesCsv() {
+  if (!filteredIssueRows.length) {
+    alert('ไม่มีข้อมูลสำหรับ export');
+    return;
+  }
+
+  const headers = [
+    'หมายเลขจุดติดตั้ง',
+    'พิกัด',
+    'อาคาร',
+    'เขต',
+    'ปัญหาที่พบ',
+    'สถานะการแก้ไข',
+    'บันทึกการแก้ไข',
+    'ผู้รายงาน',
+    'ผู้แก้ไข',
+    'วันที่สร้าง',
+    'วันที่อัปเดตล่าสุด'
+  ];
+
+  const rows = filteredIssueRows.map(row => [
+    row.point_code || '',
+    row.location || '',
+    row.building || '',
+    row.hospital_zone || '',
+    row.problem_summary || '',
+    getIssueFixStatusLabel(row.fix_status),
+    row.fix_note || '',
+    row.reported_by_name || '',
+    row.fixed_by_name || '',
+    row.created_at ? formatDateTime(row.created_at) : '',
+    row.updated_at ? formatDateTime(row.updated_at) : ''
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(toCsvValue).join(','))
+    .join('\r\n');
+
+  downloadCsv(`issues-report-${getCurrentMonthKey()}.csv`, csvContent);
 }
 
 function openIssueForm(row) {
@@ -1965,6 +2016,7 @@ bindEvent(navIssues, 'click', async () => {
 
 bindEvent(issueSearchInput, 'input', applyIssueFilters, 'issueSearchInput');
 bindEvent(btnReloadIssues, 'click', loadIssuesData, 'btnReloadIssues');
+bindEvent(btnExportIssuesCsv, 'click', exportIssuesCsv, 'btnExportIssuesCsv');
 bindEvent(btnBackIssue, 'click', showIssuesPage, 'btnBackIssue');
 bindEvent(btnSaveIssue, 'click', saveIssueForm, 'btnSaveIssue');
 
