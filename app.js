@@ -609,7 +609,6 @@ function renderList(rows) {
         <div class="inspection-code">${escapeHtml(row.point_code || '-')}</div>
         <div class="inspection-location">${escapeHtml(row.location || '-')}</div>
         <div class="inspection-meta">${escapeHtml(row.building || '-')} · ${escapeHtml(row.hospital_zone || '-')}</div>
-        <div class="inspection-sub">วันหมดอายุ: ${escapeHtml(row.expiry_date || 'ไม่ระบุ')}</div>
         ${
           row.checked_at
             ? `<div class="inspection-sub">ตรวจล่าสุด: ${escapeHtml(formatDateTime(row.checked_at))}</div>`
