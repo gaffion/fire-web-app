@@ -351,7 +351,8 @@
       margin-bottom: 12px;
     }
 
-    .toolbar .search { flex: 1 1 100%; }
+    .toolbar .search,
+    .toolbar .search-wrap { flex: 1 1 100%; }
     .toolbar .btn    { flex: 1 1 0; min-width: 100px; }
 
     .point-add-btn { width: 100%; margin-bottom: 12px; }
@@ -372,6 +373,48 @@
     .search {
       height: 48px;
       padding: 0 14px;
+    }
+
+    .search-wrap {
+      position: relative;
+      width: 100%;
+    }
+
+    .search-wrap .search {
+      padding-right: 50px;
+    }
+
+    .search-clear-btn {
+      position: absolute;
+      top: 50%;
+      right: 6px;
+      width: 36px;
+      height: 36px;
+      transform: translateY(-50%);
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, color .15s, transform .08s;
+    }
+
+    .search-clear-btn:hover {
+      background: var(--surface-soft);
+      color: var(--text);
+    }
+
+    .search-clear-btn:active {
+      transform: translateY(-50%) scale(.94);
+    }
+
+    .search-clear-btn[hidden] {
+      display: none;
     }
 
     .textarea {
@@ -1021,7 +1064,8 @@
       .app { padding: 24px 20px calc(106px + env(safe-area-inset-bottom)); }
       .summary-grid { grid-template-columns: repeat(4,1fr); }
       .toolbar { flex-wrap: nowrap; }
-      .toolbar .search { flex: 1 1 auto; }
+      .toolbar .search,
+      .toolbar .search-wrap { flex: 1 1 auto; }
       .toolbar .btn    { flex: 0 0 auto; }
     }
   </style>
@@ -1152,7 +1196,10 @@
     <p class="subtitle">รายการจุดติดตั้งประจำเดือนปัจจุบัน</p>
 
     <div class="toolbar">
-      <input id="searchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร" />
+      <div class="search-wrap">
+        <input id="searchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร" />
+        <button id="searchInputClear" class="search-clear-btn" type="button" aria-label="ล้างคำค้น" hidden>&times;</button>
+      </div>
       <button id="btnReload" class="btn secondary" type="button">
         <span class="material-symbols-outlined" style="font-size:18px;">refresh</span>
         โหลดใหม่
@@ -1183,7 +1230,10 @@
     <p class="subtitle">ติดตามและจัดการปัญหาจากการตรวจสอบ</p>
 
     <div class="toolbar">
-      <input id="issueSearchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร, ปัญหา" />
+      <div class="search-wrap">
+        <input id="issueSearchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร, ปัญหา" />
+        <button id="issueSearchInputClear" class="search-clear-btn" type="button" aria-label="ล้างคำค้น" hidden>&times;</button>
+      </div>
       <button id="btnReloadIssues" class="btn secondary" type="button">
         <span class="material-symbols-outlined" style="font-size:18px;">refresh</span>
         โหลดใหม่
@@ -1211,7 +1261,10 @@
     <p class="subtitle">รายการจุดติดตั้งถังดับเพลิงทั้งหมด</p>
 
     <div class="toolbar">
-      <input id="pointSearchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร" />
+      <div class="search-wrap">
+        <input id="pointSearchInput" class="search" placeholder="ค้นหา point code, พิกัด, อาคาร" />
+        <button id="pointSearchInputClear" class="search-clear-btn" type="button" aria-label="ล้างคำค้น" hidden>&times;</button>
+      </div>
       <button id="btnReloadPoints" class="btn secondary" type="button">
         <span class="material-symbols-outlined" style="font-size:18px;">refresh</span>
         โหลดใหม่
@@ -1246,7 +1299,10 @@
     <p class="subtitle">จัดการบัญชีผู้ใช้งาน</p>
 
     <div class="toolbar">
-      <input id="userSearchInput" class="search" placeholder="ค้นหา username, ชื่อ, role, status" />
+      <div class="search-wrap">
+        <input id="userSearchInput" class="search" placeholder="ค้นหา username, ชื่อ, role, status" />
+        <button id="userSearchInputClear" class="search-clear-btn" type="button" aria-label="ล้างคำค้น" hidden>&times;</button>
+      </div>
       <button id="btnReloadUsers" class="btn secondary" type="button">
         <span class="material-symbols-outlined" style="font-size:18px;">refresh</span>
         โหลดใหม่

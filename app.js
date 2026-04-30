@@ -61,6 +61,7 @@ const statusEl = document.getElementById('status');
 const errorEl = document.getElementById('error');
 const listEl = document.getElementById('list');
 const searchInput = document.getElementById('searchInput');
+const searchInputClear = document.getElementById('searchInputClear');
 const btnReload = document.getElementById('btnReload');
 const btnExportInspectionCsv = document.getElementById('btnExportInspectionCsv');
 
@@ -88,6 +89,7 @@ const issueStatusEl = document.getElementById('issueStatus');
 const issueErrorEl = document.getElementById('issueError');
 const issueListEl = document.getElementById('issueList');
 const issueSearchInput = document.getElementById('issueSearchInput');
+const issueSearchInputClear = document.getElementById('issueSearchInputClear');
 const btnReloadIssues = document.getElementById('btnReloadIssues');
 const btnExportIssuesCsv = document.getElementById('btnExportIssuesCsv');
 
@@ -107,6 +109,7 @@ const pointStatusEl = document.getElementById('pointStatus');
 const pointErrorEl = document.getElementById('pointError');
 const pointListEl = document.getElementById('pointList');
 const pointSearchInput = document.getElementById('pointSearchInput');
+const pointSearchInputClear = document.getElementById('pointSearchInputClear');
 const btnReloadPoints = document.getElementById('btnReloadPoints');
 const btnExportPointsCsv = document.getElementById('btnExportPointsCsv');
 const btnAddPoint = document.getElementById('btnAddPoint');
@@ -133,6 +136,7 @@ const btnReplaceAsset = document.getElementById('btnReplaceAsset');
 const usersPage = document.getElementById('usersPage');
 const userFormPage = document.getElementById('userFormPage');
 const userSearchInput = document.getElementById('userSearchInput');
+const userSearchInputClear = document.getElementById('userSearchInputClear');
 const btnReloadUsers = document.getElementById('btnReloadUsers');
 const btnAddUser = document.getElementById('btnAddUser');
 const userStatusEl = document.getElementById('userStatus');
@@ -199,6 +203,24 @@ function bindEvent(element, eventName, handler, label) {
   }
 
   element.addEventListener(eventName, handler);
+}
+
+function setupSearchClearButton(inputEl, clearBtnEl, onClear) {
+  if (!inputEl || !clearBtnEl) return;
+
+  const syncClearButton = () => {
+    clearBtnEl.hidden = !inputEl.value;
+  };
+
+  inputEl.addEventListener('input', syncClearButton);
+  clearBtnEl.addEventListener('click', () => {
+    inputEl.value = '';
+    syncClearButton();
+    if (typeof onClear === 'function') onClear();
+    inputEl.focus();
+  });
+
+  syncClearButton();
 }
 
 function saveSession(user) {
@@ -2079,6 +2101,7 @@ function setAllChecksPass() {
 }
 
 bindEvent(searchInput, 'input', applyFilters, 'searchInput');
+setupSearchClearButton(searchInput, searchInputClear, applyFilters);
 bindEvent(btnLogin, 'click', login, 'btnLogin');
 bindEvent(loginUsernameEl, 'keydown', event => {
   if (event.key === 'Enter') login();
@@ -2103,6 +2126,7 @@ bindEvent(navIssues, 'click', async () => {
 }, 'navIssues');
 
 bindEvent(issueSearchInput, 'input', applyIssueFilters, 'issueSearchInput');
+setupSearchClearButton(issueSearchInput, issueSearchInputClear, applyIssueFilters);
 bindEvent(btnReloadIssues, 'click', loadIssuesData, 'btnReloadIssues');
 bindEvent(btnExportIssuesCsv, 'click', exportIssuesCsv, 'btnExportIssuesCsv');
 bindEvent(btnBackIssue, 'click', showIssuesPage, 'btnBackIssue');
@@ -2293,6 +2317,7 @@ function handleBuildingChange() {
 }
 
 bindEvent(pointSearchInput, 'input', applyPointFilters, 'pointSearchInput');
+setupSearchClearButton(pointSearchInput, pointSearchInputClear, applyPointFilters);
 bindEvent(btnReloadPoints, 'click', loadPointsData, 'btnReloadPoints');
 bindEvent(btnExportPointsCsv, 'click', exportPointsCsv, 'btnExportPointsCsv');
 bindEvent(btnAddPoint, 'click', openNewPointForm, 'btnAddPoint');
@@ -2301,6 +2326,7 @@ bindEvent(btnBackPointForm, 'click', showPointsPage, 'btnBackPointForm');
 bindEvent(btnSavePointForm, 'click', savePointForm, 'btnSavePointForm');
 bindEvent(btnReplaceAsset, 'click', replaceAssetForPoint, 'btnReplaceAsset');
 bindEvent(userSearchInput, 'input', applyUserFilters, 'userSearchInput');
+setupSearchClearButton(userSearchInput, userSearchInputClear, applyUserFilters);
 bindEvent(btnReloadUsers, 'click', loadUsersData, 'btnReloadUsers');
 bindEvent(btnAddUser, 'click', openNewUserForm, 'btnAddUser');
 bindEvent(btnBackUserForm, 'click', showUsersPage, 'btnBackUserForm');
